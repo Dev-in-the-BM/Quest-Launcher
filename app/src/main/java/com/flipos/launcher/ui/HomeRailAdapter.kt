@@ -71,6 +71,11 @@ class HomeRailAdapter(
                 icon.scaleType = ImageView.ScaleType.FIT_CENTER
                 icon.clearColorFilter()
                 icon.setImageDrawable(app.icon)
+                // Match the app drawer: the focus shape takes its color from
+                // the icon it sits behind, rather than using the global accent.
+                selectionHighlight.background = SquircleDrawable(
+                    NotificationDotColor.forIcon(app.key, app.icon),
+                )
                 if (hasNotification(app)) {
                     notifDot.visibility = View.VISIBLE
                     notifDot.backgroundTintList = ColorStateList.valueOf(NotificationDotColor.forIcon(app.key, app.icon))
@@ -82,6 +87,9 @@ class HomeRailAdapter(
                 icon.scaleType = ImageView.ScaleType.FIT_CENTER
                 icon.setImageResource(R.drawable.ic_add)
                 icon.setColorFilter(Color.WHITE)
+                // The add-shortcut control is not an app, so retain a neutral
+                // focus surface instead of inventing an app color for it.
+                selectionHighlight.setBackgroundResource(R.drawable.bg_rail_focus)
                 notifDot.visibility = View.GONE
             }
             selectionHighlight.isSelected = false

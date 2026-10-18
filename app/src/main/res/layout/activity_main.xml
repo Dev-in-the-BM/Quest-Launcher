@@ -243,6 +243,7 @@
             android:id="@+id/softkey_center"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:background="@drawable/bg_app_menu_focus"
             android:clickable="true"
             android:contentDescription="@string/content_apps"
             android:defaultFocusHighlightEnabled="false"
