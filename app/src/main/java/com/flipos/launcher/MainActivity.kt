@@ -242,6 +242,10 @@ class MainActivity : AppCompatActivity() {
         val target = (focusedRailIndex + direction).coerceIn(0, adapter.itemCount - 1)
         if (target == focusedRailIndex) return true
         focusedRailIndex = target
+        // Apply the new selection before the wheel's first animation frame.
+        // Waiting for onScrolled makes the halo appear late and scale into view
+        // with the wheel, unlike the app grid's immediate focus highlight.
+        updateWheelCurve()
         val layout = rail.layoutManager as? LinearLayoutManager ?: return true
         val anchorIndex = layout.findFirstVisibleItemPosition()
         val anchor = layout.findViewByPosition(anchorIndex) ?: return true
