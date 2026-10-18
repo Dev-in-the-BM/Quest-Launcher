@@ -294,7 +294,7 @@ class MainActivity : AppCompatActivity() {
         refreshShortcuts()
         refreshLeftKeyLabel()
         refreshRightKeyLabel()
-        focusAppMenu()
+        resetHomeFocus()
         NotificationCounts.addListener(notifListener)
         updateNotifSummary()
         maybePromptDefaultLauncher()
@@ -303,6 +303,15 @@ class MainActivity : AppCompatActivity() {
         // (after registering the receiver/listener above) so onPause's matching
         // unregister calls below still have something to unregister.
         if (prefs.getAccentColor() != appliedAccentColor) recreate()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // A HOME intent can bring this existing singleTask activity forward from
+        // another app. Always return to the home state rather than preserving a
+        // previously opened shortcut wheel.
+        resetHomeFocus()
     }
 
     override fun onPause() {
@@ -395,7 +404,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun openAppDrawer() = startActivity(Intent(this, AppDrawerActivity::class.java))
 
-    /** Highlight the "open app menu" button by default whenever Home is shown. */
+    /** Return to the default Home state, with the app-menu action ready for OK. */
+    private fun resetHomeFocus() {
+        wheelAnimator?.cancel()
+        setRailExpanded(false)
+        focusAppMenu()
+    }
+
     private fun focusAppMenu() = appMenuButton.post { appMenuButton.requestFocus() }
 
     private fun openLeftKeyApp() {
