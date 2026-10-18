@@ -3,6 +3,9 @@
 The launcher for your Android keypad phone.
 So far a little UI polish added to the original KaiOS launcher it's based off of. hopefully more coming if I odn't lsoe patience.
 
+https://github.com/user-attachments/assets/2e2fe6a0-2790-4637-b332-ae51f3214e90
+
+
 > [!NOTE]
 > The rest of this README is outdated.
 
