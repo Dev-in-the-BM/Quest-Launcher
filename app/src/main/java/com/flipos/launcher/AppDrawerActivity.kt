@@ -2,10 +2,13 @@ package com.flipos.launcher
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -23,6 +26,7 @@ import com.flipos.launcher.ui.ListRowAdapter
 import com.flipos.launcher.ui.PageIndicatorView
 import com.flipos.launcher.ui.Row
 import com.flipos.launcher.ui.SoftKeyBar
+import com.flipos.launcher.ui.SquircleDrawable
 import com.flipos.launcher.util.launchAppByKey
 import kotlin.math.ceil
 import kotlin.math.min
@@ -52,6 +56,9 @@ class AppDrawerActivity : AppCompatActivity() {
     private lateinit var listAdapter: ListRowAdapter
     private lateinit var softKeys: SoftKeyBar
     private lateinit var pageIndicator: PageIndicatorView
+    private lateinit var gridFocusHighlight: View
+    private val gridFocusDrawable = SquircleDrawable()
+    private var gridFocusVisible = false
 
     private var allApps: List<AppInfo> = emptyList()
     private var currentPageItems: List<AppInfo> = emptyList()
@@ -75,6 +82,10 @@ class AppDrawerActivity : AppCompatActivity() {
         titleView = findViewById(R.id.title)
         softKeys = findViewById(R.id.soft_keys)
         pageIndicator = findViewById(R.id.page_indicator)
+        gridFocusHighlight = findViewById<View>(R.id.grid_focus_highlight).apply {
+            background = gridFocusDrawable
+            isSelected = true
+        }
 
         // The window shows the wallpaper through a translucent overlay (see
         // Theme.FlipLauncher.Drawer); these two would otherwise paint over it
@@ -94,7 +105,10 @@ class AppDrawerActivity : AppCompatActivity() {
             onLongClick = { showContextMenu(it) },
             // Labels are gone from the grid; mirror the focused app's name
             // where "All Apps" normally sits so it's still identifiable.
-            onFocusChanged = { titleView.text = it.label },
+            onFocusChanged = { app, itemView ->
+                titleView.text = app.label
+                showGridFocusHighlight(app, itemView)
+            },
             iconSizePercent = prefs.getIconSizePercent(),
             hasNotification = ::hasNotification,
         )
@@ -132,6 +146,7 @@ class AppDrawerActivity : AppCompatActivity() {
         val wantList = prefs.isDrawerListViewEnabled()
         if (wantList == listMode && grid.adapter != null) return
         listMode = wantList
+        if (listMode) hideGridFocusHighlight()
         updatePageSize()
         grid.layoutManager = if (listMode) LinearLayoutManager(this) else GridLayoutManager(this, gridColumns)
         grid.adapter = if (listMode) listAdapter else gridAdapter
@@ -206,6 +221,7 @@ class AppDrawerActivity : AppCompatActivity() {
 
     /** Swap the grid's contents to [page] and re-sync the dot indicator. */
     private fun bindPage(page: Int, focusPosition: Int? = null) {
+        hideGridFocusHighlight()
         currentPage = page
         val start = page * pageSize
         val end = min(start + pageSize, allApps.size)
@@ -247,6 +263,48 @@ class AppDrawerActivity : AppCompatActivity() {
             }
             override fun onChildViewDetachedFromWindow(view: View) = Unit
         })
+    }
+
+    /** Moves one focus surface beneath the grid, instead of snapping a new
+     * background into each individual cell. */
+    private fun showGridFocusHighlight(app: AppInfo, itemView: View) {
+        if (listMode) return
+        itemView.post {
+            if (isDestroyed || grid.focusedChild !== itemView) return@post
+            val iconFrame = itemView.findViewById<View>(R.id.icon_frame)
+            val parent = gridFocusHighlight.parent as? FrameLayout ?: return@post
+            val bounds = Rect().also {
+                iconFrame.getDrawingRect(it)
+                parent.offsetDescendantRectToMyCoords(iconFrame, it)
+            }
+            gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
+            val params = gridFocusHighlight.layoutParams as FrameLayout.LayoutParams
+            val sizeChanged = params.width != bounds.width() || params.height != bounds.height()
+            params.width = bounds.width()
+            params.height = bounds.height()
+            gridFocusHighlight.layoutParams = params
+            gridFocusHighlight.animate().cancel()
+            if (!gridFocusVisible || sizeChanged) {
+                gridFocusHighlight.x = bounds.left.toFloat()
+                gridFocusHighlight.y = bounds.top.toFloat()
+                gridFocusHighlight.visibility = View.VISIBLE
+                gridFocusVisible = true
+            } else {
+                gridFocusHighlight.animate()
+                    .x(bounds.left.toFloat())
+                    .y(bounds.top.toFloat())
+                    .setDuration(GRID_HIGHLIGHT_SLIDE_MS)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+        }
+    }
+
+    private fun hideGridFocusHighlight() {
+        if (!::gridFocusHighlight.isInitialized) return
+        gridFocusHighlight.animate().cancel()
+        gridFocusHighlight.visibility = View.INVISIBLE
+        gridFocusVisible = false
     }
 
     /** Flip to [page], keeping the focused column and landing on the matching row. */
@@ -440,5 +498,6 @@ class AppDrawerActivity : AppCompatActivity() {
     companion object {
         private const val GRID_COLUMNS = 3
         private const val PAGE_SIZE = 9
+        private const val GRID_HIGHLIGHT_SLIDE_MS = 150L
     }
 }

@@ -16,7 +16,7 @@ import com.flipos.launcher.data.NotificationDotColor
 class AppGridAdapter(
     private val onClick: (AppInfo) -> Unit,
     private val onLongClick: (AppInfo) -> Unit,
-    private val onFocusChanged: (AppInfo) -> Unit = {},
+    private val onFocusChanged: (AppInfo, View) -> Unit = { _, _ -> },
     private val iconSizePercent: Int = 100,
     private val hasNotification: (AppInfo) -> Boolean = { false },
 ) : RecyclerView.Adapter<AppGridAdapter.VH>() {
@@ -68,12 +68,7 @@ class AppGridAdapter(
     inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val icon: ImageView = itemView.findViewById(R.id.icon)
         private val notifDot: View = itemView.findViewById(R.id.notif_dot)
-        private val highlight = SquircleDrawable().also {
-            itemView.findViewById<View>(R.id.icon_frame).background = it
-        }
-
         fun bind(app: AppInfo) {
-            highlight.setColor(NotificationDotColor.forIcon(app.key, app.icon))
             val density = Resources.getSystem().displayMetrics.density
             // Before the grid's first layout pass, gridWidthPx/gridHeightPx are
             // still 0 - fall back to a fixed size so icons aren't briefly
@@ -97,7 +92,7 @@ class AppGridAdapter(
                 true
             }
             itemView.setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus) onFocusChanged(app)
+                if (hasFocus) onFocusChanged(app, itemView)
             }
         }
 

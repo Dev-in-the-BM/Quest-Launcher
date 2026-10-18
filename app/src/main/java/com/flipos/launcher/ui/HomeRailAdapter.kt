@@ -92,6 +92,11 @@ class HomeRailAdapter(
                 selectionHighlight.setBackgroundResource(R.drawable.bg_rail_focus)
                 notifDot.visibility = View.GONE
             }
+            // A recycled row may have been the outgoing side of a wheel
+            // cross-fade; restore its neutral state before it represents a
+            // different shortcut.
+            selectionHighlight.animate().cancel()
+            selectionHighlight.alpha = 1f
             selectionHighlight.isSelected = false
             itemView.setOnClickListener {
                 val pos = bindingAdapterPosition

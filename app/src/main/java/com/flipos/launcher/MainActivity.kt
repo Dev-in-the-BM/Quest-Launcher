@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: HomeRailAdapter
     private var railExpanded = false
     private var focusedRailIndex = 0
+    private var displayedRailHighlightIndex = RecyclerView.NO_POSITION
     private var wheelAnimator: ValueAnimator? = null
     private lateinit var clock: TextView
     private lateinit var ampm: TextView
@@ -174,6 +175,7 @@ class MainActivity : AppCompatActivity() {
     private fun setRailExpanded(expanded: Boolean) {
         if (railExpanded == expanded) return
         railExpanded = expanded
+        if (!expanded) clearRailHighlight()
         val density = resources.displayMetrics.density
         rail.animate()
             .translationX(if (expanded) 0f else -42f * density)
@@ -195,6 +197,7 @@ class MainActivity : AppCompatActivity() {
         focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
         wheelAnimator?.cancel()
         centerRailItem(focusedRailIndex)
+        setRailHighlight(focusedRailIndex, animate = false)
         rail.requestFocus()
     }
 
@@ -232,7 +235,62 @@ class MainActivity : AppCompatActivity() {
                 // whichever icon shape/size is rendered in this slot.
                 scaleX = 1.18f
                 scaleY = 1.18f
-                isSelected = railExpanded && rail.getChildAdapterPosition(row) == focusedRailIndex
+                // A newly attached target (after a scroll) needs the current
+                // selection state, but normal focus moves are handled by
+                // setRailHighlight so their old/new halos can cross-fade.
+                if (railExpanded && rail.getChildAdapterPosition(row) == displayedRailHighlightIndex && !isSelected) {
+                    alpha = 1f
+                    isSelected = true
+                }
+            }
+        }
+    }
+
+    private fun setRailHighlight(index: Int, animate: Boolean) {
+        val previous = displayedRailHighlightIndex
+        displayedRailHighlightIndex = index
+        if (!animate || previous == RecyclerView.NO_POSITION || previous == index) {
+            for (i in 0 until rail.childCount) {
+                val row = rail.getChildAt(i)
+                row.findViewById<View>(R.id.selection_highlight).apply {
+                    animate().cancel()
+                    alpha = 1f
+                    isSelected = rail.getChildAdapterPosition(row) == index
+                }
+            }
+            return
+        }
+
+        rail.layoutManager?.findViewByPosition(previous)
+            ?.findViewById<View>(R.id.selection_highlight)
+            ?.apply {
+                animate().cancel()
+                isSelected = true
+                alpha = 1f
+                animate().alpha(0f).setDuration(RAIL_HIGHLIGHT_FADE_MS).withEndAction {
+                    if (displayedRailHighlightIndex != previous) {
+                        isSelected = false
+                        alpha = 1f
+                    }
+                }.start()
+            }
+        rail.layoutManager?.findViewByPosition(index)
+            ?.findViewById<View>(R.id.selection_highlight)
+            ?.apply {
+                animate().cancel()
+                isSelected = true
+                alpha = 0f
+                animate().alpha(1f).setDuration(RAIL_HIGHLIGHT_FADE_MS).start()
+            }
+    }
+
+    private fun clearRailHighlight() {
+        displayedRailHighlightIndex = RecyclerView.NO_POSITION
+        for (i in 0 until rail.childCount) {
+            rail.getChildAt(i).findViewById<View>(R.id.selection_highlight).apply {
+                animate().cancel()
+                alpha = 1f
+                isSelected = false
             }
         }
     }
@@ -242,10 +300,8 @@ class MainActivity : AppCompatActivity() {
         val target = (focusedRailIndex + direction).coerceIn(0, adapter.itemCount - 1)
         if (target == focusedRailIndex) return true
         focusedRailIndex = target
-        // Apply the new selection before the wheel's first animation frame.
-        // Waiting for onScrolled makes the halo appear late and scale into view
-        // with the wheel, unlike the app grid's immediate focus highlight.
-        updateWheelCurve()
+        // Start the cross-fade before the wheel's first animation frame.
+        setRailHighlight(target, animate = true)
         val layout = rail.layoutManager as? LinearLayoutManager ?: return true
         val anchorIndex = layout.findFirstVisibleItemPosition()
         val anchor = layout.findViewByPosition(anchorIndex) ?: return true
@@ -363,7 +419,10 @@ class MainActivity : AppCompatActivity() {
                 if (railExpanded && adapter.itemCount > 0) {
                     focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
                 }
-                rail.post { centerRailItem(focusedRailIndex) }
+                rail.post {
+                    centerRailItem(focusedRailIndex)
+                    if (railExpanded) setRailHighlight(focusedRailIndex, animate = false)
+                }
             }
         }.start()
     }
@@ -560,5 +619,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         // Shown at most once per process so we don't nag on every resume.
         private var defaultPromptShown = false
+        const val RAIL_HIGHLIGHT_FADE_MS = 120L
     }
 }
