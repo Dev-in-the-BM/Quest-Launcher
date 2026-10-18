@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.KeyEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -45,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rail: RecyclerView
     private lateinit var appMenuButton: ImageView
     private lateinit var adapter: HomeRailAdapter
+    private var railExpanded = false
     private lateinit var clock: TextView
     private lateinit var ampm: TextView
     private lateinit var weekday: TextView
@@ -122,6 +124,8 @@ class MainActivity : AppCompatActivity() {
         rail.layoutManager = LinearLayoutManager(this)
         rail.adapter = adapter
         rail.itemAnimator = null
+        rail.clipChildren = true
+        rail.clipToPadding = true
         // Slot height is computed from the rail's actual height so 5 shortcuts are
         // always visible without scrolling, regardless of screen size/aspect ratio.
         rail.doOnLayout {
@@ -145,6 +149,7 @@ class MainActivity : AppCompatActivity() {
                 if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
                 when (keyCode) {
                     KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        setRailExpanded(true)
                         rail.layoutManager?.findViewByPosition(0)?.requestFocus() ?: rail.requestFocus()
                         true
                     }
@@ -152,6 +157,7 @@ class MainActivity : AppCompatActivity() {
                     else -> false
                 }
             }
+            setOnFocusChangeListener { _, hasFocus -> if (hasFocus) setRailExpanded(false) }
         }
 
         // Back opens the app drawer; long-pressing it launches the configured app instead
@@ -161,6 +167,35 @@ class MainActivity : AppCompatActivity() {
         })
 
         updateClock()
+    }
+
+    private fun setRailExpanded(expanded: Boolean) {
+        if (railExpanded == expanded) return
+        railExpanded = expanded
+        val density = resources.displayMetrics.density
+        rail.animate()
+            .translationX(if (expanded) 0f else -42f * density)
+            .setDuration(240)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+        findViewById<View>(R.id.home_clock_group).let { clockGroup ->
+            val params = clockGroup.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            params.marginStart = ((if (expanded) 8 else -44) * density).toInt()
+            clockGroup.layoutParams = params
+        }
+        adapter.setExpanded(expanded)
+        val openCrescent = intArrayOf(0, 10, 16, 10, 0)
+        val closedCrescent = intArrayOf(-9, 2, 9, 2, -9)
+        for (index in 0 until rail.childCount) {
+            val row = rail.getChildAt(index)
+            val position = rail.getChildAdapterPosition(row).coerceAtLeast(0)
+            val offset = (if (expanded) openCrescent else closedCrescent)[position.coerceAtMost(4)].toFloat()
+            row.findViewById<View>(R.id.circle).animate()
+                .translationX(offset * density)
+                .setDuration(240)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
     }
 
     override fun onResume() {

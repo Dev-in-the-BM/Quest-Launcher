@@ -30,6 +30,12 @@ class HomeRailAdapter(
 
     /** Slot height in px so exactly [SLOTS_VISIBLE] rows fit the rail without scrolling. */
     private var itemHeightPx = -1
+    private var expanded = false
+
+    fun setExpanded(value: Boolean) {
+        if (expanded == value) return
+        expanded = value
+    }
 
     fun submit(list: List<RailItem>) {
         items.clear()
@@ -61,6 +67,16 @@ class HomeRailAdapter(
 
         fun bind(item: RailItem) {
             if (itemHeightPx > 0) itemView.layoutParams = itemView.layoutParams.apply { height = itemHeightPx }
+            val slot = bindingAdapterPosition.coerceAtLeast(0)
+            // Keep the crescent in both states; in the closed state the ends
+            // sit a little farther off-screen than the center shortcuts.
+            val crescent = if (expanded) {
+                intArrayOf(0, 10, 16, 10, 0)[slot.coerceAtMost(4)]
+            } else {
+                intArrayOf(-9, 2, 9, 2, -9)[slot.coerceAtMost(4)]
+            }
+            circle.translationX = itemView.resources.displayMetrics.density *
+                crescent.toFloat()
             val app = item.app
             if (app != null) {
                 // The icon is already shaped (and given a background, if any)
