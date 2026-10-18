@@ -66,7 +66,9 @@ class HomeRailAdapter(
             if (app != null) {
                 // The icon is already shaped (and given a background, if any)
                 // by IconShapeRenderer when it was resolved, so it's shown as-is.
-                circle.background = null
+                // Match the launcher-wide focus treatment (also used by the
+                // Apps grid soft key). Selection is applied by the wheel.
+                circle.setBackgroundResource(R.drawable.bg_rail_focus)
                 icon.scaleType = ImageView.ScaleType.FIT_CENTER
                 icon.clearColorFilter()
                 icon.setImageDrawable(app.icon)
