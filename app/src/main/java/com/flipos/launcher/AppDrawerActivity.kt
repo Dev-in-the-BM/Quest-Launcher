@@ -2,7 +2,6 @@ package com.flipos.launcher
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
@@ -273,26 +272,32 @@ class AppDrawerActivity : AppCompatActivity() {
             if (isDestroyed || grid.focusedChild !== itemView) return@post
             val iconFrame = itemView.findViewById<View>(R.id.icon_frame)
             val parent = gridFocusHighlight.parent as? FrameLayout ?: return@post
-            val bounds = Rect().also {
-                iconFrame.getDrawingRect(it)
-                parent.offsetDescendantRectToMyCoords(iconFrame, it)
-            }
+            // Work in window coordinates rather than walking the RecyclerView's
+            // transient child hierarchy. During quick D-pad moves its child
+            // layout can be between passes, which made the moving surface use
+            // a stale, undersized rect or land offset from the icon.
+            val iconLocation = IntArray(2)
+            val parentLocation = IntArray(2)
+            iconFrame.getLocationInWindow(iconLocation)
+            parent.getLocationInWindow(parentLocation)
+            val left = iconLocation[0] - parentLocation[0]
+            val top = iconLocation[1] - parentLocation[1]
             gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
             val params = gridFocusHighlight.layoutParams as FrameLayout.LayoutParams
-            val sizeChanged = params.width != bounds.width() || params.height != bounds.height()
-            params.width = bounds.width()
-            params.height = bounds.height()
+            val sizeChanged = params.width != iconFrame.width || params.height != iconFrame.height
+            params.width = iconFrame.width
+            params.height = iconFrame.height
             gridFocusHighlight.layoutParams = params
             gridFocusHighlight.animate().cancel()
             if (!gridFocusVisible || sizeChanged) {
-                gridFocusHighlight.x = bounds.left.toFloat()
-                gridFocusHighlight.y = bounds.top.toFloat()
+                gridFocusHighlight.x = left.toFloat()
+                gridFocusHighlight.y = top.toFloat()
                 gridFocusHighlight.visibility = View.VISIBLE
                 gridFocusVisible = true
             } else {
                 gridFocusHighlight.animate()
-                    .x(bounds.left.toFloat())
-                    .y(bounds.top.toFloat())
+                    .x(left.toFloat())
+                    .y(top.toFloat())
                     .setDuration(GRID_HIGHLIGHT_SLIDE_MS)
                     .setInterpolator(DecelerateInterpolator())
                     .start()

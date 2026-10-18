@@ -619,6 +619,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         // Shown at most once per process so we don't nag on every resume.
         private var defaultPromptShown = false
-        const val RAIL_HIGHLIGHT_FADE_MS = 120L
+        const val RAIL_HIGHLIGHT_FADE_MS = 180L
     }
 }
