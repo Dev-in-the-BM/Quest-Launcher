@@ -12,6 +12,7 @@
         android:layout_height="0dp"
         android:background="@drawable/bg_rail_panel"
         android:clipToPadding="false"
+        android:defaultFocusHighlightEnabled="false"
         android:translationX="-42dp"
         android:descendantFocusability="blocksDescendants"
         android:focusable="true"

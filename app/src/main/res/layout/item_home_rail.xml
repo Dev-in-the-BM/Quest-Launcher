@@ -10,7 +10,8 @@
         android:layout_width="54dp"
         android:layout_height="54dp"
         android:layout_gravity="center"
-        android:background="@drawable/bg_circle">
+        android:background="@drawable/bg_circle"
+        android:foreground="@drawable/bg_wheel_selection">
 
         <ImageView
             android:id="@+id/icon"

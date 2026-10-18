@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -128,19 +127,6 @@ class MainActivity : AppCompatActivity() {
         rail.layoutManager = LinearLayoutManager(this)
         rail.adapter = adapter
         rail.itemAnimator = null
-        val selectionBackground = getDrawable(R.drawable.bg_rail_focus)!!.apply {
-            state = intArrayOf(android.R.attr.state_selected)
-        }
-        rail.addItemDecoration(object : RecyclerView.ItemDecoration() {
-            override fun onDraw(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
-                if (!railExpanded || adapter.itemCount == 0) return
-                val slot = adapter.itemHeightPx
-                if (slot <= 0) return
-                val top = (parent.height - slot) / 2
-                selectionBackground.setBounds(0, top, parent.width, top + slot)
-                selectionBackground.draw(canvas)
-            }
-        })
         rail.doOnLayout {
             val slot = (it.height - (24 * resources.displayMetrics.density).toInt()) / HomeRailAdapter.SLOTS_VISIBLE
             if (slot > 0 && adapter.itemHeightPx != slot) {
@@ -197,7 +183,6 @@ class MainActivity : AppCompatActivity() {
             params.marginStart = ((if (expanded) 8 else -44) * density).toInt()
             clockGroup.layoutParams = params
         }
-        rail.invalidate()
         updateWheelCurve()
     }
 
@@ -225,12 +210,22 @@ class MainActivity : AppCompatActivity() {
         if (slot <= 0) return
         val density = resources.displayMetrics.density
         val center = rail.height / 2f
+        // The icons sit on one shared elliptical track rather than each taking
+        // an independent sideways offset.  Scale and opacity provide the depth
+        // cues that make the vertical motion read as a turning wheel.
+        val verticalRadius = slot * 2.35f
+        val horizontalRadius = 22f * density
         for (i in 0 until rail.childCount) {
             val row = rail.getChildAt(i)
-            val distance = kotlin.math.abs((row.top + row.bottom) / 2f - center) / slot
-            val curve = (1f - (distance / 2f).coerceIn(0f, 1f).let { it * it })
-            row.findViewById<View>(R.id.circle).translationX =
-                (if (railExpanded) 16f * curve else -9f + 18f * curve) * density
+            val relativeY = (row.top + row.bottom) / 2f - center
+            val normalizedY = (relativeY / verticalRadius).coerceIn(-0.98f, 0.98f)
+            val depth = kotlin.math.sqrt(1f - normalizedY * normalizedY)
+            val circle = row.findViewById<View>(R.id.circle)
+            circle.translationX = if (railExpanded) horizontalRadius * (depth - 1f) else -9f * density
+            circle.scaleX = 0.72f + 0.28f * depth
+            circle.scaleY = circle.scaleX
+            circle.alpha = 0.42f + 0.58f * depth
+            circle.isSelected = railExpanded && rail.getChildAdapterPosition(row) == focusedRailIndex
         }
     }
 
