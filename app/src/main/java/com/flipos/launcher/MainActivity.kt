@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appMenuButton: ImageView
     private lateinit var adapter: HomeRailAdapter
     private var railExpanded = false
+    private var focusedRailIndex = 0
     private lateinit var clock: TextView
     private lateinit var ampm: TextView
     private lateinit var weekday: TextView
@@ -120,6 +121,7 @@ class MainActivity : AppCompatActivity() {
             hasNotification = { app ->
                 prefs.isIconNotificationDotEnabled() && NotificationCounts.packagesWithNotifications.contains(app.packageName)
             },
+            onNavigate = { position, direction -> moveRailFocus(position, direction) },
         )
         rail.layoutManager = LinearLayoutManager(this)
         rail.adapter = adapter
@@ -130,7 +132,11 @@ class MainActivity : AppCompatActivity() {
         // always visible without scrolling, regardless of screen size/aspect ratio.
         rail.doOnLayout {
             val available = it.height - it.paddingTop - it.paddingBottom
-            adapter.setItemHeightPx(available / HomeRailAdapter.SLOTS_VISIBLE)
+            val slotHeight = available / HomeRailAdapter.SLOTS_VISIBLE
+            adapter.setItemHeightPx(slotHeight)
+            (rail.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+                focusedRailIndex, available / 2 - slotHeight / 2,
+            )
         }
 
         findViewById<TextView>(R.id.softkey_left).setOnClickListener { openLeftKeyApp() }
@@ -150,7 +156,7 @@ class MainActivity : AppCompatActivity() {
                 when (keyCode) {
                     KeyEvent.KEYCODE_DPAD_LEFT -> {
                         setRailExpanded(true)
-                        rail.layoutManager?.findViewByPosition(0)?.requestFocus() ?: rail.requestFocus()
+                        rail.layoutManager?.findViewByPosition(focusedRailIndex)?.requestFocus() ?: rail.requestFocus()
                         true
                     }
                     KeyEvent.KEYCODE_DPAD_RIGHT -> true
@@ -196,6 +202,29 @@ class MainActivity : AppCompatActivity() {
                 .setInterpolator(DecelerateInterpolator())
                 .start()
         }
+    }
+
+    private fun moveRailFocus(position: Int, direction: Int): Boolean {
+        val target = (position + direction).coerceIn(0, adapter.itemCount - 1)
+        if (target == position) return true
+        focusedRailIndex = target
+        val layout = rail.layoutManager as? LinearLayoutManager ?: return true
+        val available = rail.height - rail.paddingTop - rail.paddingBottom
+        val slotHeight = available / HomeRailAdapter.SLOTS_VISIBLE
+        layout.smoothScrollToPosition(rail, RecyclerView.State(), target)
+        // Keep the active shortcut centered even at the ends of the list.
+        rail.postDelayed({
+            layout.scrollToPositionWithOffset(target, available / 2 - slotHeight / 2)
+            rail.post {
+                layout.findViewByPosition(target)?.let { row ->
+                    row.requestFocus()
+                    val circle = row.findViewById<View>(R.id.circle)
+                    circle.animate().rotationBy(if (direction > 0) 360f else -360f)
+                        .setDuration(280).setInterpolator(DecelerateInterpolator()).start()
+                }
+            }
+        }, 120)
+        return true
     }
 
     override fun onResume() {

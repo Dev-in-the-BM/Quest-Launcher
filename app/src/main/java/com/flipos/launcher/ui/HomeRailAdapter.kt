@@ -24,6 +24,7 @@ class HomeRailAdapter(
     private val onClick: (position: Int, item: RailItem) -> Unit,
     private val onLongClick: (position: Int, item: RailItem) -> Unit,
     private val hasNotification: (AppInfo) -> Boolean = { false },
+    private val onNavigate: (position: Int, direction: Int) -> Boolean = { _, _ -> false },
 ) : RecyclerView.Adapter<HomeRailAdapter.VH>() {
 
     private val items = ArrayList<RailItem>()
@@ -106,6 +107,16 @@ class HomeRailAdapter(
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) onLongClick(pos, item)
                 true
+            }
+            itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action != android.view.KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                val direction = when (keyCode) {
+                    android.view.KeyEvent.KEYCODE_DPAD_UP -> -1
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> 1
+                    else -> return@setOnKeyListener false
+                }
+                val pos = bindingAdapterPosition
+                pos != RecyclerView.NO_POSITION && onNavigate(pos, direction)
             }
         }
     }
