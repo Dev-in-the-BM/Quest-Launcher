@@ -1,5 +1,13 @@
-# KaiOS Android Launcher for Flip Phones
+# Quest Launcher for keypad Phones
 
+The launcher for your Android keypad phone.
+So far a little UI polish added to the original KaiOS launcher it's based off of. hopefully more coming if I odn't lsoe patience.
+
+> [!NOTE]
+> The rest of this README is outdated.
+
+<details>
+  <summary>Some relevant info here, some outdated pics and descriptions </summary>
 A KaiOS-style Android launcher built for feature-phone-shaped devices (small,
 low-resolution, D-pad/soft-key driven screens) rather than touch-first
 flagships. Navigation leans on the physical soft keys and D-pad: number keys
@@ -143,3 +151,5 @@ the Notices screen and Home notification badges to work.
 
 No other runtime permissions are required. App enumeration uses a `<queries>`
 declaration rather than `QUERY_ALL_PACKAGES`.
+</details>
+
