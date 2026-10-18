@@ -225,7 +225,13 @@ class MainActivity : AppCompatActivity() {
             circle.scaleX = 0.72f + 0.28f * depth
             circle.scaleY = circle.scaleX
             circle.alpha = 0.42f + 0.58f * depth
-            circle.isSelected = railExpanded && rail.getChildAdapterPosition(row) == focusedRailIndex
+            row.findViewById<View>(R.id.selection_highlight).apply {
+                // A multiplier, not a fixed size: it remains 18% larger than
+                // whichever icon shape/size is rendered in this slot.
+                scaleX = 1.18f
+                scaleY = 1.18f
+                isSelected = railExpanded && rail.getChildAdapterPosition(row) == focusedRailIndex
+            }
         }
     }
 

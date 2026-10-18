@@ -2,6 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:clipChildren="false"
     android:clickable="true"
     android:focusable="false">
 
@@ -10,7 +11,15 @@
         android:layout_width="54dp"
         android:layout_height="54dp"
         android:layout_gravity="center"
-        android:background="@drawable/bg_circle">
+        android:clipChildren="false">
+
+        <!-- This is scaled relative to the icon container in code, so its halo
+             stays proportional for every configured icon shape and icon pack. -->
+        <View
+            android:id="@+id/selection_highlight"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_rail_focus" />
 
         <ImageView
             android:id="@+id/icon"

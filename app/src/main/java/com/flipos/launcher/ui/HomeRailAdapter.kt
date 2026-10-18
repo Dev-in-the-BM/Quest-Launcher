@@ -57,6 +57,7 @@ class HomeRailAdapter(
 
     inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val circle: FrameLayout = itemView.findViewById(R.id.circle)
+        private val selectionHighlight: View = itemView.findViewById(R.id.selection_highlight)
         private val icon: ImageView = itemView.findViewById(R.id.icon)
         private val notifDot: View = itemView.findViewById(R.id.notif_dot)
 
@@ -66,9 +67,7 @@ class HomeRailAdapter(
             if (app != null) {
                 // The icon is already shaped (and given a background, if any)
                 // by IconShapeRenderer when it was resolved, so it's shown as-is.
-                // Match the launcher-wide focus treatment (also used by the
-                // Apps grid soft key). Selection is applied by the wheel.
-                circle.setBackgroundResource(R.drawable.bg_rail_focus)
+                circle.background = null
                 icon.scaleType = ImageView.ScaleType.FIT_CENTER
                 icon.clearColorFilter()
                 icon.setImageDrawable(app.icon)
@@ -85,6 +84,7 @@ class HomeRailAdapter(
                 icon.setColorFilter(Color.WHITE)
                 notifDot.visibility = View.GONE
             }
+            selectionHighlight.isSelected = false
             itemView.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) onClick(pos, item)
