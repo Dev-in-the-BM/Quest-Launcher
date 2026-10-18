@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base dark KaiOS-style theme used by settings/drawer screens. -->
-    <style name="Theme.FlipLauncher" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.QuestLauncher" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/kai_bg</item>
         <item name="android:colorBackground">@color/kai_bg</item>
         <item name="android:statusBarColor">@color/kai_softkey_bg</item>
@@ -17,7 +17,7 @@
          extends behind the status bar instead of being clipped by
          fitsSystemWindows, keeping the status bar's darkening consistent with
          the rest of the screen. -->
-    <style name="Theme.FlipLauncher.Home" parent="Theme.FlipLauncher">
+    <style name="Theme.QuestLauncher.Home" parent="Theme.QuestLauncher">
         <item name="android:windowShowWallpaper">true</item>
         <item name="android:windowBackground">@drawable/bg_home_scrim</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -25,7 +25,7 @@
 
     <!-- App drawer: wallpaper behind a translucent black scrim, edge to edge,
          matching the rest of the KaiOS chrome instead of a solid bar. -->
-    <style name="Theme.FlipLauncher.Drawer" parent="Theme.FlipLauncher.Home">
+    <style name="Theme.QuestLauncher.Drawer" parent="Theme.QuestLauncher.Home">
         <item name="android:windowBackground">@color/kai_overlay</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
@@ -33,25 +33,25 @@
     <!-- Accent color overlays applied at runtime (see LauncherPrefs.AccentColor)
          on top of whichever base theme an activity already uses, so every
          ?attr/colorAccent reference in drawables/layouts follows the user's pick. -->
-    <style name="ThemeOverlay.FlipLauncher.Accent.Red" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Red" parent="">
         <item name="colorAccent">@color/kai_accent_red</item>
     </style>
-    <style name="ThemeOverlay.FlipLauncher.Accent.Orange" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Orange" parent="">
         <item name="colorAccent">@color/kai_accent_orange</item>
     </style>
-    <style name="ThemeOverlay.FlipLauncher.Accent.Yellow" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Yellow" parent="">
         <item name="colorAccent">@color/kai_accent_yellow</item>
     </style>
-    <style name="ThemeOverlay.FlipLauncher.Accent.Green" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Green" parent="">
         <item name="colorAccent">@color/kai_accent_green</item>
     </style>
-    <style name="ThemeOverlay.FlipLauncher.Accent.Blue" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Blue" parent="">
         <item name="colorAccent">@color/kai_accent_blue</item>
     </style>
-    <style name="ThemeOverlay.FlipLauncher.Accent.Indigo" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Indigo" parent="">
         <item name="colorAccent">@color/kai_accent_indigo</item>
     </style>
-    <style name="ThemeOverlay.FlipLauncher.Accent.Violet" parent="">
+    <style name="ThemeOverlay.QuestLauncher.Accent.Violet" parent="">
         <item name="colorAccent">@color/kai_accent_violet</item>
     </style>
 </resources>

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.flipos.launcher"
+    namespace = "quest.devinthebm.launcher"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.flipos.launcher"
+        applicationId = "quest.devinthebm.launcher"
         minSdk = 21
         targetSdk = 34
         versionCode = 1

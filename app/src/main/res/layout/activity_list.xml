@@ -28,7 +28,7 @@
         android:paddingTop="4dp"
         android:paddingBottom="4dp" />
 
-    <com.flipos.launcher.ui.SoftKeyBar
+    <quest.devinthebm.launcher.ui.SoftKeyBar
         android:id="@+id/soft_keys"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />

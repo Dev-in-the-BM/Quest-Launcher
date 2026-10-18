@@ -1,6 +1,6 @@
-# Flip Launcher (KaiOS-style Android launcher)
+# Quest Launcher (KaiOS-style Android launcher)
 
-`com.flipos.launcher` — minSdk 21, compileSdk/targetSdk 34, Kotlin, no Compose.
+`quest.devinthebm.launcher` — minSdk 21, compileSdk/targetSdk 34, Kotlin, no Compose.
 
 ## Environment
 

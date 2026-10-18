@@ -132,7 +132,7 @@ The debug APK lands in `app/build/outputs/apk/debug/`.
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Then set Flip Launcher as your default Home app (Options → Set as Default
+Then set Quest Launcher as your default Home app (Options → Set as Default
 Launcher), and grant Notification Access from Launcher Settings if you want
 the Notices screen and Home notification badges to work.
 
