@@ -27,6 +27,7 @@ import com.flipos.launcher.data.LauncherPrefs
 import com.flipos.launcher.data.NotificationCounts
 import com.flipos.launcher.ui.HomeRailAdapter
 import com.flipos.launcher.ui.RailItem
+import com.flipos.launcher.ui.SpotlightDrawable
 import com.flipos.launcher.util.launchAppByKey
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -143,6 +144,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.softkey_left).setOnClickListener { openLeftKeyApp() }
         findViewById<TextView>(R.id.softkey_right).setOnClickListener { openRightKeyApp() }
         appMenuButton = findViewById<ImageView>(R.id.softkey_center).apply {
+            background = SpotlightDrawable()
             setOnClickListener { openAppDrawer() }
             setOnLongClickListener { openOptions(); true }
             // The center key opens the wheel with the middle icon selected.
