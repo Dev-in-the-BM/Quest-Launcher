@@ -1,7 +1,8 @@
 # Quest Launcher for keypad Phones
 
 The launcher for your Android keypad phone.
-So far a little UI polish added to the original KaiOS launcher it's based off of. hopefully more coming if I odn't lsoe patience.
+So far a little UI polish added to the original KaiOS launcher it's based off of.
+Hopefully more coming if I don't lose patience.
 
 https://github.com/user-attachments/assets/2e2fe6a0-2790-4637-b332-ae51f3214e90
 
