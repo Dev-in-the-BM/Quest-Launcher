@@ -1,10 +1,12 @@
 package com.flipos.launcher
 
+import android.animation.ValueAnimator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -48,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: HomeRailAdapter
     private var railExpanded = false
     private var focusedRailIndex = 0
+    private var wheelAnimator: ValueAnimator? = null
     private lateinit var clock: TextView
     private lateinit var ampm: TextView
     private lateinit var weekday: TextView
@@ -121,45 +124,50 @@ class MainActivity : AppCompatActivity() {
             hasNotification = { app ->
                 prefs.isIconNotificationDotEnabled() && NotificationCounts.packagesWithNotifications.contains(app.packageName)
             },
-            onNavigate = { position, direction -> moveRailFocus(position, direction) },
         )
         rail.layoutManager = LinearLayoutManager(this)
         rail.adapter = adapter
         rail.itemAnimator = null
-        rail.clipChildren = true
-        rail.clipToPadding = true
-        // Slot height is computed from the rail's actual height so 5 shortcuts are
-        // always visible without scrolling, regardless of screen size/aspect ratio.
-        rail.doOnLayout {
-            val available = it.height - it.paddingTop - it.paddingBottom
-            val slotHeight = available / HomeRailAdapter.SLOTS_VISIBLE
-            adapter.setItemHeightPx(slotHeight)
-            (rail.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
-                focusedRailIndex, available / 2 - slotHeight / 2,
-            )
+        val selectionBackground = getDrawable(R.drawable.bg_rail_focus)!!.apply {
+            state = intArrayOf(android.R.attr.state_selected)
         }
+        rail.addItemDecoration(object : RecyclerView.ItemDecoration() {
+            override fun onDraw(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+                if (!railExpanded || adapter.itemCount == 0) return
+                val slot = adapter.itemHeightPx
+                if (slot <= 0) return
+                val top = (parent.height - slot) / 2
+                selectionBackground.setBounds(0, top, parent.width, top + slot)
+                selectionBackground.draw(canvas)
+            }
+        })
+        rail.doOnLayout {
+            val slot = (it.height - (24 * resources.displayMetrics.density).toInt()) / HomeRailAdapter.SLOTS_VISIBLE
+            if (slot > 0 && adapter.itemHeightPx != slot) {
+                val edge = (it.height - slot) / 2
+                it.setPadding(0, edge, 0, edge)
+                adapter.setItemHeightPx(slot)
+                it.post { centerRailItem(focusedRailIndex) }
+            }
+        }
+        rail.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) = updateWheelCurve()
+        })
 
         findViewById<TextView>(R.id.softkey_left).setOnClickListener { openLeftKeyApp() }
         findViewById<TextView>(R.id.softkey_right).setOnClickListener { openRightKeyApp() }
         appMenuButton = findViewById<ImageView>(R.id.softkey_center).apply {
             setOnClickListener { openAppDrawer() }
             setOnLongClickListener { openOptions(); true }
-            // Left jumps straight to the first pinned shortcut. The soft keys
-            // either side of this button aren't keyboard-focusable, so without
-            // this, default focus search would still wander into the rail on
-            // its own (it's the only other focusable view) - landing on
-            // whichever item geometric search happens to pick, not the top one.
-            // Right has no focusable target and is swallowed so it's a no-op
-            // instead of also leaking into the rail.
+            // The center key opens the wheel with the middle icon selected.
+            // Right has no focusable target and is swallowed.
             setOnKeyListener { _, keyCode, event ->
                 if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
                 when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        setRailExpanded(true)
-                        rail.layoutManager?.findViewByPosition(focusedRailIndex)?.requestFocus() ?: rail.requestFocus()
+                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        openWheel()
                         true
                     }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> true
                     else -> false
                 }
             }
@@ -189,42 +197,86 @@ class MainActivity : AppCompatActivity() {
             params.marginStart = ((if (expanded) 8 else -44) * density).toInt()
             clockGroup.layoutParams = params
         }
-        adapter.setExpanded(expanded)
-        val openCrescent = intArrayOf(0, 10, 16, 10, 0)
-        val closedCrescent = intArrayOf(-9, 2, 9, 2, -9)
-        for (index in 0 until rail.childCount) {
-            val row = rail.getChildAt(index)
-            val position = rail.getChildAdapterPosition(row).coerceAtLeast(0)
-            val offset = (if (expanded) openCrescent else closedCrescent)[position.coerceAtMost(4)].toFloat()
-            row.findViewById<View>(R.id.circle).animate()
-                .translationX(offset * density)
-                .setDuration(240)
-                .setInterpolator(DecelerateInterpolator())
-                .start()
+        rail.invalidate()
+        updateWheelCurve()
+    }
+
+    /** Opens the carousel with its third (visually middle) shortcut selected. */
+    private fun openWheel() {
+        setRailExpanded(true)
+        if (adapter.itemCount == 0) return
+        focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
+        wheelAnimator?.cancel()
+        centerRailItem(focusedRailIndex)
+        rail.requestFocus()
+    }
+
+    /** Used only after layout/data changes, never during a wheel turn. */
+    private fun centerRailItem(position: Int) {
+        if (adapter.itemCount == 0 || adapter.itemHeightPx <= 0) return
+        (rail.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(
+            position.coerceIn(0, adapter.itemCount - 1), 0,
+        )
+        rail.post { updateWheelCurve() }
+    }
+
+    private fun updateWheelCurve() {
+        val slot = adapter.itemHeightPx
+        if (slot <= 0) return
+        val density = resources.displayMetrics.density
+        val center = rail.height / 2f
+        for (i in 0 until rail.childCount) {
+            val row = rail.getChildAt(i)
+            val distance = kotlin.math.abs((row.top + row.bottom) / 2f - center) / slot
+            val curve = (1f - (distance / 2f).coerceIn(0f, 1f).let { it * it })
+            row.findViewById<View>(R.id.circle).translationX =
+                (if (railExpanded) 16f * curve else -9f + 18f * curve) * density
         }
     }
 
-    private fun moveRailFocus(position: Int, direction: Int): Boolean {
-        val target = (position + direction).coerceIn(0, adapter.itemCount - 1)
-        if (target == position) return true
+    private fun moveRailFocus(direction: Int): Boolean {
+        if (adapter.itemCount == 0) return true
+        val target = (focusedRailIndex + direction).coerceIn(0, adapter.itemCount - 1)
+        if (target == focusedRailIndex) return true
         focusedRailIndex = target
         val layout = rail.layoutManager as? LinearLayoutManager ?: return true
-        val available = rail.height - rail.paddingTop - rail.paddingBottom
-        val slotHeight = available / HomeRailAdapter.SLOTS_VISIBLE
-        layout.smoothScrollToPosition(rail, RecyclerView.State(), target)
-        // Keep the active shortcut centered even at the ends of the list.
-        rail.postDelayed({
-            layout.scrollToPositionWithOffset(target, available / 2 - slotHeight / 2)
-            rail.post {
-                layout.findViewByPosition(target)?.let { row ->
-                    row.requestFocus()
-                    val circle = row.findViewById<View>(R.id.circle)
-                    circle.animate().rotationBy(if (direction > 0) 360f else -360f)
-                        .setDuration(280).setInterpolator(DecelerateInterpolator()).start()
-                }
+        val anchorIndex = layout.findFirstVisibleItemPosition()
+        val anchor = layout.findViewByPosition(anchorIndex) ?: return true
+        val centerTop = (rail.height - adapter.itemHeightPx) / 2
+        val distance = anchor.top - centerTop + (target - anchorIndex) * adapter.itemHeightPx
+        wheelAnimator?.cancel()
+        var previous = 0
+        wheelAnimator = ValueAnimator.ofInt(0, distance).apply {
+            duration = 240
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { animation ->
+                val value = animation.animatedValue as Int
+                rail.scrollBy(0, value - previous)
+                previous = value
             }
-        }, 120)
+            start()
+        }
         return true
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (::rail.isInitialized && railExpanded && rail.hasFocus()) {
+            val key = event.keyCode
+            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN ||
+                key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER ||
+                key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                if (event.action == KeyEvent.ACTION_DOWN) when (key) {
+                    KeyEvent.KEYCODE_DPAD_UP -> moveRailFocus(-1)
+                    KeyEvent.KEYCODE_DPAD_DOWN -> moveRailFocus(1)
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER ->
+                        (rail.layoutManager as? LinearLayoutManager)
+                            ?.findViewByPosition(focusedRailIndex)?.performClick()
+                    KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_LEFT -> appMenuButton.requestFocus()
+                }
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onResume() {
@@ -290,7 +342,12 @@ class MainActivity : AppCompatActivity() {
             if (isDestroyed) return@Thread
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
+                wheelAnimator?.cancel()
                 adapter.submit(entries)
+                if (railExpanded && adapter.itemCount > 0) {
+                    focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
+                }
+                rail.post { centerRailItem(focusedRailIndex) }
             }
         }.start()
     }

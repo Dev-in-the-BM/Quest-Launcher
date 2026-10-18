@@ -24,19 +24,13 @@ class HomeRailAdapter(
     private val onClick: (position: Int, item: RailItem) -> Unit,
     private val onLongClick: (position: Int, item: RailItem) -> Unit,
     private val hasNotification: (AppInfo) -> Boolean = { false },
-    private val onNavigate: (position: Int, direction: Int) -> Boolean = { _, _ -> false },
 ) : RecyclerView.Adapter<HomeRailAdapter.VH>() {
 
     private val items = ArrayList<RailItem>()
 
     /** Slot height in px so exactly [SLOTS_VISIBLE] rows fit the rail without scrolling. */
-    private var itemHeightPx = -1
-    private var expanded = false
-
-    fun setExpanded(value: Boolean) {
-        if (expanded == value) return
-        expanded = value
-    }
+    var itemHeightPx = -1
+        private set
 
     fun submit(list: List<RailItem>) {
         items.clear()
@@ -68,16 +62,6 @@ class HomeRailAdapter(
 
         fun bind(item: RailItem) {
             if (itemHeightPx > 0) itemView.layoutParams = itemView.layoutParams.apply { height = itemHeightPx }
-            val slot = bindingAdapterPosition.coerceAtLeast(0)
-            // Keep the crescent in both states; in the closed state the ends
-            // sit a little farther off-screen than the center shortcuts.
-            val crescent = if (expanded) {
-                intArrayOf(0, 10, 16, 10, 0)[slot.coerceAtMost(4)]
-            } else {
-                intArrayOf(-9, 2, 9, 2, -9)[slot.coerceAtMost(4)]
-            }
-            circle.translationX = itemView.resources.displayMetrics.density *
-                crescent.toFloat()
             val app = item.app
             if (app != null) {
                 // The icon is already shaped (and given a background, if any)
@@ -107,16 +91,6 @@ class HomeRailAdapter(
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) onLongClick(pos, item)
                 true
-            }
-            itemView.setOnKeyListener { _, keyCode, event ->
-                if (event.action != android.view.KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-                val direction = when (keyCode) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP -> -1
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> 1
-                    else -> return@setOnKeyListener false
-                }
-                val pos = bindingAdapterPosition
-                pos != RecyclerView.NO_POSITION && onNavigate(pos, direction)
             }
         }
     }
