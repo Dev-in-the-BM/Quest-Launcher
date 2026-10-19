@@ -2,7 +2,6 @@ package quest.devinthebm.launcher
 
 import android.os.Bundle
 import android.provider.Settings
-import android.view.KeyEvent
 import android.widget.Toast
 import quest.devinthebm.launcher.data.NoticeItem
 import quest.devinthebm.launcher.data.NotificationStore
@@ -26,14 +25,10 @@ class NoticesActivity : BaseListActivity() {
         adapter = NoticeRowAdapter(onClick = { openNotice(it) })
         listView.adapter = adapter
 
-        softKeys.setLabels(
-            getString(R.string.softkey_dismiss),
-            getString(R.string.softkey_select),
-            getString(R.string.softkey_dismiss_all),
-        )
-        softKeys.setOnLeftClick { dismissFocused() }
-        softKeys.setOnCenterClick { openFocused() }
-        softKeys.setOnRightClick { dismissAll() }
+        softKeys.set {
+            left(getString(R.string.softkey_dismiss)) { dismissFocused() }
+            right(getString(R.string.softkey_dismiss_all)) { dismissAll() }
+        }
     }
 
     override fun onResume() {
@@ -86,11 +81,4 @@ class NoticesActivity : BaseListActivity() {
         NotificationCountService.instance?.dismissAll()
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            dismissFocused()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 }

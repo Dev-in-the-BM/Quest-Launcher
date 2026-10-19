@@ -41,14 +41,10 @@ class ShortcutConfigActivity : BaseListActivity() {
         adapter = ListRowAdapter(onClick = { onRowClick(it) })
         listView.adapter = adapter
 
-        softKeys.setLabels(
-            getString(R.string.softkey_back),
-            getString(R.string.softkey_select),
-            getString(R.string.softkey_clear),
-        )
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { onRowClick(focusedPosition()) }
-        softKeys.setOnRightClick { clearAt(focusedPosition()) }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+            right(getString(R.string.softkey_clear)) { clearAt(focusedPosition()) }
+        }
     }
 
     override fun onResume() {
@@ -109,8 +105,6 @@ class ShortcutConfigActivity : BaseListActivity() {
                 if (index <= shortcuts.size && index < LauncherPrefs.MAX_SHORTCUTS) onRowClick(index)
                 return true
             }
-            KeyEvent.KEYCODE_SOFT_LEFT -> { finish(); return true }
-            KeyEvent.KEYCODE_SOFT_RIGHT -> { clearAt(focusedPosition()); return true }
         }
         return super.onKeyDown(keyCode, event)
     }

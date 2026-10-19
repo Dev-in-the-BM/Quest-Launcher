@@ -24,7 +24,7 @@ import quest.devinthebm.launcher.ui.AppGridAdapter
 import quest.devinthebm.launcher.ui.ListRowAdapter
 import quest.devinthebm.launcher.ui.PageIndicatorView
 import quest.devinthebm.launcher.ui.Row
-import quest.devinthebm.launcher.ui.SoftKeyBar
+import com.theonionsarewatching.yapchik.Softkeys
 import quest.devinthebm.launcher.ui.SquircleDrawable
 import quest.devinthebm.launcher.util.launchAppByKey
 import kotlin.math.ceil
@@ -53,7 +53,6 @@ class AppDrawerActivity : AppCompatActivity() {
     private lateinit var titleView: TextView
     private lateinit var gridAdapter: AppGridAdapter
     private lateinit var listAdapter: ListRowAdapter
-    private lateinit var softKeys: SoftKeyBar
     private lateinit var pageIndicator: PageIndicatorView
     private lateinit var gridFocusHighlight: View
     private val gridFocusDrawable = SquircleDrawable()
@@ -79,7 +78,6 @@ class AppDrawerActivity : AppCompatActivity() {
 
         grid = findViewById(R.id.apps_grid)
         titleView = findViewById(R.id.title)
-        softKeys = findViewById(R.id.soft_keys)
         pageIndicator = findViewById(R.id.page_indicator)
         gridFocusHighlight = findViewById<View>(R.id.grid_focus_highlight).apply {
             background = gridFocusDrawable
@@ -90,7 +88,6 @@ class AppDrawerActivity : AppCompatActivity() {
         // Theme.QuestLauncher.Drawer); these two would otherwise paint over it
         // with their own solid bar, breaking the edge-to-edge KaiOS look.
         titleView.setBackgroundColor(Color.TRANSPARENT)
-        softKeys.setBackgroundColor(Color.TRANSPARENT)
 
         // RecyclerView defaults to focusable so it has somewhere to park focus
         // when it's empty. We always have items and manage focus ourselves, and
@@ -123,11 +120,10 @@ class AppDrawerActivity : AppCompatActivity() {
             if (oldPageSize != pageSize) refresh()
         }
 
-        softKeys.setLabels(null, null, getString(R.string.softkey_options))
-        softKeys.setCenterPlainLabel(getString(R.string.softkey_select).uppercase())
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { openFocused() }
-        softKeys.setOnRightClick { optionsForFocused() }
+        Softkeys.of(this).set {
+            left(getString(R.string.softkey_back)) { finish() }
+            right(getString(R.string.softkey_options)) { optionsForFocused() }
+        }
     }
 
     override fun onResume() {
@@ -494,8 +490,6 @@ class AppDrawerActivity : AppCompatActivity() {
             // stopping at a row edge; the list has no columns to move between.
             KeyEvent.KEYCODE_DPAD_RIGHT -> { if (!listMode) { moveFocusByColumn(1); return true } }
             KeyEvent.KEYCODE_DPAD_LEFT -> { if (!listMode) { moveFocusByColumn(-1); return true } }
-            KeyEvent.KEYCODE_SOFT_LEFT -> { finish(); return true }
-            KeyEvent.KEYCODE_SOFT_RIGHT, KeyEvent.KEYCODE_MENU -> { optionsForFocused(); return true }
         }
         return super.onKeyDown(keyCode, event)
     }

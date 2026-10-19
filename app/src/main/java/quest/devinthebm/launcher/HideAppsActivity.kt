@@ -1,7 +1,6 @@
 package quest.devinthebm.launcher
 
 import android.os.Bundle
-import android.view.KeyEvent
 import quest.devinthebm.launcher.data.AppInfo
 import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
@@ -26,13 +25,9 @@ class HideAppsActivity : BaseListActivity() {
         adapter = ListRowAdapter(onClick = { toggle(it) })
         listView.adapter = adapter
 
-        softKeys.setLabels(
-            getString(R.string.softkey_back),
-            getString(R.string.softkey_toggle),
-            null,
-        )
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { toggle(focusedPosition()) }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+        }
     }
 
     override fun onResume() {
@@ -65,11 +60,4 @@ class HideAppsActivity : BaseListActivity() {
         adapter.updateRow(position, rowFor(app))
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 }

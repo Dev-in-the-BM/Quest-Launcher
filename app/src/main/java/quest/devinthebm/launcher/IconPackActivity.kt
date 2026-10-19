@@ -2,7 +2,6 @@ package quest.devinthebm.launcher
 
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.view.KeyEvent
 import android.widget.Toast
 import quest.devinthebm.launcher.data.IconPackRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
@@ -31,9 +30,9 @@ class IconPackActivity : BaseListActivity() {
         adapter = ListRowAdapter(onClick = { pick(it) })
         listView.adapter = adapter
 
-        softKeys.setLabels(getString(R.string.softkey_back), getString(R.string.softkey_select), null)
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { pick(focusedPosition()) }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+        }
 
         load()
     }
@@ -78,11 +77,4 @@ class IconPackActivity : BaseListActivity() {
         load()
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 }

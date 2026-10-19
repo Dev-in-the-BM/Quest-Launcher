@@ -5,19 +5,20 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.theonionsarewatching.yapchik.SoftkeyController
+import com.theonionsarewatching.yapchik.Softkeys
 import quest.devinthebm.launcher.data.LauncherPrefs
-import quest.devinthebm.launcher.ui.SoftKeyBar
 
 /**
  * Shared scaffolding for the vertical list screens (Options, Hide Apps,
  * Shortcuts, App Picker): a title bar, a focusable [RecyclerView] and the bottom
- * [SoftKeyBar]. Subclasses populate the adapter and wire up the soft keys.
+ * Yapchik softkeys. Subclasses populate the adapter and wire up the soft keys.
  */
 abstract class BaseListActivity : AppCompatActivity() {
 
     protected lateinit var titleView: TextView
     protected lateinit var listView: RecyclerView
-    protected lateinit var softKeys: SoftKeyBar
+    protected lateinit var softKeys: SoftkeyController
 
     /** The accent color applied this onCreate, so [onResume] can detect a change and [recreate]. */
     private var appliedAccentColor: LauncherPrefs.AccentColor? = null
@@ -30,7 +31,7 @@ abstract class BaseListActivity : AppCompatActivity() {
         setContentView(R.layout.activity_list)
         titleView = findViewById(R.id.title)
         listView = findViewById(R.id.list)
-        softKeys = findViewById(R.id.soft_keys)
+        softKeys = Softkeys.of(this)
         listView.layoutManager = LinearLayoutManager(this)
         listView.itemAnimator = null
     }

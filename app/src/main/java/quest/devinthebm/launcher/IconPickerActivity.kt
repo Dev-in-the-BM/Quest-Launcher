@@ -1,7 +1,6 @@
 package quest.devinthebm.launcher
 
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -13,7 +12,7 @@ import quest.devinthebm.launcher.data.BuiltInIcons
 import quest.devinthebm.launcher.data.IconPackRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
 import quest.devinthebm.launcher.ui.IconGridAdapter
-import quest.devinthebm.launcher.ui.SoftKeyBar
+import com.theonionsarewatching.yapchik.Softkeys
 
 /**
  * Lets the user replace one app's icon with any icon from an installed icon
@@ -46,7 +45,6 @@ class IconPickerActivity : AppCompatActivity() {
         titleView = findViewById(R.id.title)
         grid = findViewById(R.id.apps_grid)
         findViewById<View>(R.id.page_indicator).visibility = View.GONE
-        val softKeys = findViewById<SoftKeyBar>(R.id.soft_keys)
 
         adapter = IconGridAdapter(
             onClick = { name -> applyIcon(name) },
@@ -61,8 +59,9 @@ class IconPickerActivity : AppCompatActivity() {
         grid.layoutManager = GridLayoutManager(this, COLUMNS)
         grid.adapter = adapter
 
-        softKeys.setLabels(getString(R.string.softkey_back), null, null)
-        softKeys.setOnLeftClick { finish() }
+        Softkeys.of(this).set {
+            left(getString(R.string.softkey_back)) { finish() }
+        }
 
         titleView.text = getString(R.string.icon_picker_choose_pack)
         choosePack()
@@ -113,14 +112,6 @@ class IconPickerActivity : AppCompatActivity() {
         prefs.setIconOverride(appKey, pack, name)
         Toast.makeText(this, R.string.icon_picker_applied, Toast.LENGTH_SHORT).show()
         finish()
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
     }
 
     companion object {

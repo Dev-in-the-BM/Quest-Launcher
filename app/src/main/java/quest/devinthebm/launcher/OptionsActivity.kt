@@ -3,7 +3,6 @@ package quest.devinthebm.launcher
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AlertDialog
@@ -59,13 +58,9 @@ class OptionsActivity : BaseListActivity() {
         adapter.submit(options.map { Row(title = it.title) })
         refreshBackLongPressRow()
 
-        softKeys.setLabels(
-            getString(R.string.softkey_back),
-            getString(R.string.softkey_select),
-            null,
-        )
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { options[focusedPosition()].action() }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+        }
         focusFirst()
     }
 
@@ -110,11 +105,4 @@ class OptionsActivity : BaseListActivity() {
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 }

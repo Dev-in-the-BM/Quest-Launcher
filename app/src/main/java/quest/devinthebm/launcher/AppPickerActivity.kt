@@ -2,7 +2,6 @@ package quest.devinthebm.launcher
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.KeyEvent
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import quest.devinthebm.launcher.data.AppInfo
 import quest.devinthebm.launcher.data.AppRepository
@@ -39,14 +38,10 @@ class AppPickerActivity : BaseListActivity() {
         adapter = ListRowAdapter(onClick = { pick(it) })
         listView.adapter = adapter
 
-        softKeys.setLabels(
-            getString(R.string.softkey_back),
-            getString(R.string.softkey_select),
-            getString(R.string.softkey_activities),
-        )
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { pick(focusedPosition()) }
-        softKeys.setOnRightClick { openActivities(focusedPosition()) }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+            right(getString(R.string.softkey_activities)) { openActivities(focusedPosition()) }
+        }
 
         loadApps()
     }
@@ -77,14 +72,6 @@ class AppPickerActivity : BaseListActivity() {
                 .putExtra(ActivityPickerActivity.EXTRA_PACKAGE, app.packageName)
                 .putExtra(ActivityPickerActivity.EXTRA_TITLE, app.label),
         )
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        when (keyCode) {
-            KeyEvent.KEYCODE_SOFT_LEFT -> { finish(); return true }
-            KeyEvent.KEYCODE_SOFT_RIGHT -> { openActivities(focusedPosition()); return true }
-        }
-        return super.onKeyDown(keyCode, event)
     }
 
     companion object {

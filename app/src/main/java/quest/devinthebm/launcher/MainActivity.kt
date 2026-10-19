@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
@@ -22,6 +23,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.doOnLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.theonionsarewatching.yapchik.SoftkeyController
+import com.theonionsarewatching.yapchik.Softkeys
 import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
 import quest.devinthebm.launcher.data.NotificationCounts
@@ -47,11 +50,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: LauncherPrefs
     private lateinit var rail: RecyclerView
     private lateinit var appMenuButton: ImageView
+    private lateinit var softKeys: SoftkeyController
     private lateinit var adapter: HomeRailAdapter
     private var railExpanded = false
     private var focusedRailIndex = 0
     private var displayedRailHighlightIndex = RecyclerView.NO_POSITION
     private var wheelAnimator: ValueAnimator? = null
+    private var swipeStartX = 0f
+    private var swipeStartY = 0f
+    private var swipeEligible = false
+    private var swipeCaptured = false
     private lateinit var clock: TextView
     private lateinit var ampm: TextView
     private lateinit var weekday: TextView
@@ -142,8 +150,6 @@ class MainActivity : AppCompatActivity() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) = updateWheelCurve()
         })
 
-        findViewById<TextView>(R.id.softkey_left).setOnClickListener { openLeftKeyApp() }
-        findViewById<TextView>(R.id.softkey_right).setOnClickListener { openRightKeyApp() }
         appMenuButton = findViewById<ImageView>(R.id.softkey_center).apply {
             background = SpotlightDrawable()
             setOnClickListener { openAppDrawer() }
@@ -153,14 +159,28 @@ class MainActivity : AppCompatActivity() {
             setOnKeyListener { _, keyCode, event ->
                 if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
                 when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        openWheel()
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (railExpanded) {
+                            closeRailAndFocusAppMenu()
+                        } else {
+                            openWheel()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (railExpanded) closeRailAndFocusAppMenu()
                         true
                     }
                     else -> false
                 }
             }
             setOnFocusChangeListener { _, hasFocus -> if (hasFocus) setRailExpanded(false) }
+        }
+        softKeys = Softkeys.of(this).apply {
+            set {
+                left(label = { leftKeyLabel() }) { openLeftKeyApp() }
+                right(label = { rightKeyLabel() }) { openRightKeyApp() }
+            }
         }
 
         // Back opens the app drawer; long-pressing it launches the configured app instead
@@ -179,7 +199,7 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         rail.animate()
             .translationX(if (expanded) 0f else -42f * density)
-            .setDuration(240)
+            .setDuration(160)
             .setInterpolator(DecelerateInterpolator())
             .start()
         findViewById<View>(R.id.home_clock_group).let { clockGroup ->
@@ -188,6 +208,55 @@ class MainActivity : AppCompatActivity() {
             clockGroup.layoutParams = params
         }
         updateWheelCurve()
+    }
+
+    /** Detect rail swipes before allowing an icon to interpret the same gesture as a tap. */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (::rail.isInitialized) {
+            val density = resources.displayMetrics.density
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    swipeStartX = event.rawX
+                    swipeStartY = event.rawY
+                    val location = IntArray(2)
+                    rail.getLocationOnScreen(location)
+                    val maxStartX = (if (railExpanded) 220 else 112) * density
+                    swipeEligible = event.rawX in 0f..maxStartX &&
+                        event.rawY >= location[1] && event.rawY <= location[1] + rail.height
+                    swipeCaptured = false
+                }
+                MotionEvent.ACTION_MOVE -> if (swipeEligible && !swipeCaptured) {
+                    val dx = event.rawX - swipeStartX
+                    val dy = event.rawY - swipeStartY
+                    if (kotlin.math.abs(dx) > 6f * density && kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
+                        MotionEvent.obtain(event).apply {
+                            action = MotionEvent.ACTION_CANCEL
+                            super.dispatchTouchEvent(this)
+                            recycle()
+                        }
+                        swipeCaptured = true
+                        if (dx > 0 && !railExpanded) openWheel()
+                        else if (dx < 0 && railExpanded) closeRailAndFocusAppMenu()
+                        return true
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (swipeCaptured) {
+                        swipeCaptured = false
+                        swipeEligible = false
+                        return true
+                    }
+                    swipeEligible = false
+                }
+            }
+            if (swipeCaptured) return true
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    private fun closeRailAndFocusAppMenu() {
+        setRailExpanded(false)
+        appMenuButton.requestFocus()
     }
 
     /** Opens the carousel with its third (visually middle) shortcut selected. */
@@ -216,7 +285,7 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val center = rail.height / 2f
         // The icons sit on one shared elliptical track rather than each taking
-        // an independent sideways offset.  Scale and opacity provide the depth
+        // an independent sideways offset. Scale and opacity provide the depth
         // cues that make the vertical motion read as a turning wheel.
         val verticalRadius = slot * 2.35f
         val horizontalRadius = 22f * density
@@ -334,7 +403,10 @@ class MainActivity : AppCompatActivity() {
                     KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER ->
                         (rail.layoutManager as? LinearLayoutManager)
                             ?.findViewByPosition(focusedRailIndex)?.performClick()
-                    KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_LEFT -> appMenuButton.requestFocus()
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        closeRailAndFocusAppMenu()
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> closeRailAndFocusAppMenu()
                 }
                 return true
             }
@@ -354,8 +426,7 @@ class MainActivity : AppCompatActivity() {
         )
         updateClock()
         refreshShortcuts()
-        refreshLeftKeyLabel()
-        refreshRightKeyLabel()
+        softKeys.invalidate()
         resetHomeFocus()
         NotificationCounts.addListener(notifListener)
         updateNotifSummary()
@@ -517,18 +588,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshRightKeyLabel() {
-        val key = prefs.getRightKeyApp()
-        val label = key?.let { AppRepository.resolveComponent(this, it)?.label }
-            ?: getString(R.string.softkey_contacts)
-        findViewById<TextView>(R.id.softkey_right).text = label
+    private fun leftKeyLabel(): String {
+        val key = prefs.getLeftKeyApp()
+        return key?.let { AppRepository.resolveComponent(this, it)?.label }
+            ?: getString(R.string.softkey_notifications)
     }
 
-    private fun refreshLeftKeyLabel() {
-        val key = prefs.getLeftKeyApp()
-        val label = key?.let { AppRepository.resolveComponent(this, it)?.label }
-            ?: getString(R.string.softkey_notifications)
-        findViewById<TextView>(R.id.softkey_left).text = label
+    private fun rightKeyLabel(): String {
+        val key = prefs.getRightKeyApp()
+        return key?.let { AppRepository.resolveComponent(this, it)?.label }
+            ?: getString(R.string.softkey_contacts)
     }
 
     private fun openDialer() {
@@ -555,8 +624,6 @@ class MainActivity : AppCompatActivity() {
             in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9,
             KeyEvent.KEYCODE_STAR,
             KeyEvent.KEYCODE_POUND -> return true
-            KeyEvent.KEYCODE_SOFT_LEFT -> { openLeftKeyApp(); return true }
-            KeyEvent.KEYCODE_SOFT_RIGHT -> { openRightKeyApp(); return true }
             KeyEvent.KEYCODE_MENU -> { openAppDrawer(); return true }
             KeyEvent.KEYCODE_CALL -> { openDialer(); return true }
             KeyEvent.KEYCODE_BACK -> {

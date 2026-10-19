@@ -4,7 +4,6 @@ import android.app.WallpaperManager
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.view.KeyEvent
 import android.widget.Toast
 import androidx.recyclerview.widget.GridLayoutManager
 import quest.devinthebm.launcher.data.BuiltInWallpapers
@@ -25,9 +24,10 @@ class WallpaperPickerActivity : BaseListActivity() {
         listView.adapter = adapter
         adapter.submit(BuiltInWallpapers.names())
 
-        softKeys.setLabels(getString(R.string.softkey_back), null, getString(R.string.wallpaper_picker_more))
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnRightClick { openSystemChooser() }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+            right(getString(R.string.wallpaper_picker_more)) { openSystemChooser() }
+        }
         focusFirst()
     }
 
@@ -58,14 +58,6 @@ class WallpaperPickerActivity : BaseListActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "Not available on this device", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
     }
 
     companion object {

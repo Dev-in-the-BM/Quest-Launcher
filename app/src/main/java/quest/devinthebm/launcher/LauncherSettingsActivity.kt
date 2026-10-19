@@ -3,7 +3,6 @@ package quest.devinthebm.launcher
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import quest.devinthebm.launcher.data.AppRepository
@@ -115,13 +114,9 @@ class LauncherSettingsActivity : BaseListActivity() {
         adapter = ListRowAdapter(onClick = { settings[it].action() })
         listView.adapter = adapter
 
-        softKeys.setLabels(
-            getString(R.string.softkey_back),
-            getString(R.string.softkey_select),
-            null,
-        )
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { settings[focusedPosition()].action() }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+        }
         refreshRows()
         focusFirst()
     }
@@ -290,11 +285,4 @@ class LauncherSettingsActivity : BaseListActivity() {
             .show()
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 }

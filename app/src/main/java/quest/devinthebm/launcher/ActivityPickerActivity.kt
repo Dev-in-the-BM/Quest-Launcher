@@ -2,7 +2,6 @@ package quest.devinthebm.launcher
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.KeyEvent
 import quest.devinthebm.launcher.data.AppInfo
 import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.ui.ListRowAdapter
@@ -27,13 +26,9 @@ class ActivityPickerActivity : BaseListActivity() {
         adapter = ListRowAdapter(onClick = { pick(it) })
         listView.adapter = adapter
 
-        softKeys.setLabels(
-            getString(R.string.softkey_back),
-            getString(R.string.softkey_select),
-            null,
-        )
-        softKeys.setOnLeftClick { finish() }
-        softKeys.setOnCenterClick { pick(focusedPosition()) }
+        softKeys.set {
+            left(getString(R.string.softkey_back)) { finish() }
+        }
 
         loadActivities()
     }
@@ -61,14 +56,6 @@ class ActivityPickerActivity : BaseListActivity() {
 
     /** "com.app.ui.SettingsActivity" -> "SettingsActivity" to disambiguate rows. */
     private fun shortClassName(name: String) = name.substringAfterLast('.')
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_SOFT_LEFT) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
 
     companion object {
         const val EXTRA_PACKAGE = "package"
