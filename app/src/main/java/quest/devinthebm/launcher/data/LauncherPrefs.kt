@@ -118,6 +118,18 @@ class LauncherPrefs(context: Context) {
     fun setDrawerListViewEnabled(enabled: Boolean) =
         prefs.edit().putBoolean(KEY_DRAWER_LIST_VIEW, enabled).apply()
 
+    // ---------------------------------------------------- App drawer keypad
+
+    /** How physical keypad presses behave while the app drawer is open. */
+    fun getDrawerKeypadAction(): DrawerKeypadAction {
+        val stored = prefs.getString(KEY_DRAWER_KEYPAD_ACTION, null) ?: return DrawerKeypadAction.GRID_POSITION
+        return DrawerKeypadAction.entries.find { it.key == stored } ?: DrawerKeypadAction.GRID_POSITION
+    }
+
+    fun setDrawerKeypadAction(action: DrawerKeypadAction) {
+        prefs.edit().putString(KEY_DRAWER_KEYPAD_ACTION, action.key).apply()
+    }
+
     // --------------------------------------------------- Notification badges
 
     fun isCallBadgeEnabled(): Boolean = prefs.getBoolean(KEY_BADGE_CALLS, true)
@@ -213,6 +225,12 @@ class LauncherPrefs(context: Context) {
         NONE("none", R.string.icon_shape_none),
     }
 
+    enum class DrawerKeypadAction(val key: String, val labelRes: Int) {
+        SEARCH("search", R.string.settings_drawer_keypad_search),
+        T9_JUMP("t9_jump", R.string.settings_drawer_keypad_t9_jump),
+        GRID_POSITION("grid_position", R.string.settings_drawer_keypad_grid_position),
+    }
+
     /** A rainbow of accent color presets, plus the launcher's original cyan as the default. */
     enum class AccentColor(val key: String, val labelRes: Int, val themeOverlayRes: Int) {
         DEFAULT("default", R.string.accent_color_default, 0),
@@ -245,6 +263,7 @@ class LauncherPrefs(context: Context) {
         private const val KEY_BADGE_ICON_DOT = "badge_icon_dot"
         private const val KEY_ACTIVE_ICON_PACK = "active_icon_pack"
         private const val KEY_DRAWER_LIST_VIEW = "drawer_list_view"
+        private const val KEY_DRAWER_KEYPAD_ACTION = "drawer_keypad_action"
         private const val KEY_ICON_OVERRIDE_PREFIX = "icon_override_"
         private const val KEY_ACCENT_COLOR = "accent_color"
         private const val ICON_OVERRIDE_SEPARATOR = "::"

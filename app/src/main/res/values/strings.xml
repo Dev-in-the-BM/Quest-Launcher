@@ -83,6 +83,11 @@
     <string name="settings_drawer_view">App Drawer View</string>
     <string name="settings_drawer_view_grid">Grid</string>
     <string name="settings_drawer_view_list">List</string>
+    <string name="settings_drawer_keypad">App Drawer Keypad</string>
+    <string name="settings_drawer_keypad_search">Search</string>
+    <string name="settings_drawer_keypad_t9_jump">T9 App Jump</string>
+    <string name="settings_drawer_keypad_grid_position">Grid Position</string>
+    <string name="settings_drawer_keypad_set">App drawer keypad set to %1$s</string>
     <string name="settings_accent_color">Accent Color</string>
     <string name="settings_accent_color_set">Accent color set to %1$s</string>
     <string name="accent_color_default">Cyan (default)</string>

@@ -8,10 +8,13 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -36,12 +39,10 @@ import kotlin.math.min
  *
  * The grid pages nine apps at a time: D-pad navigates within a page, row by
  * row, and pressing down off the bottom row (or up off the top row) flips to
- * the next/previous page, tracked by a column of dots to the right. Number
- * keys 1-9 launch the matching position within the current page, echoing the
- * classic feature-phone menu. The list, by contrast, is one continuous,
- * ordinary scroll - no pages, no dots, no number-key shortcuts - since
- * chopping a list into same-sized chunks doesn't carry the same meaning a
- * grid page does and only made scrolling feel choppy.
+ * the next/previous page, tracked by a column of dots to the right. The
+ * configurable keypad can search, make a T9 initial jump, or launch a grid
+ * position; * and # always move a page backward or forward. The list remains
+ * one continuous scroll, while * and # move it by one visible screenful.
  *
  * Center/OK opens the focused app. The Options soft key (or long-press) lets
  * the user pin an app to Home, hide it, or uninstall it.
@@ -51,6 +52,7 @@ class AppDrawerActivity : AppCompatActivity() {
     private lateinit var prefs: LauncherPrefs
     private lateinit var grid: RecyclerView
     private lateinit var titleView: TextView
+    private lateinit var searchField: EditText
     private lateinit var gridAdapter: AppGridAdapter
     private lateinit var listAdapter: ListRowAdapter
     private lateinit var pageIndicator: PageIndicatorView
@@ -62,8 +64,13 @@ class AppDrawerActivity : AppCompatActivity() {
     private var currentPageItems: List<AppInfo> = emptyList()
     private var currentPage = 0
     private var listMode = false
+    private var searchVisible = false
+    private var searchQuery = ""
     private var gridColumns = GRID_COLUMNS
     private var pageSize = PAGE_SIZE
+    private var lastT9Key = KeyEvent.KEYCODE_UNKNOWN
+    private var t9LetterIndex = 0
+    private var lastT9PressAt = 0L
 
     /** The accent color applied this onCreate, so [onResume] can detect a change and [recreate]. */
     private var appliedAccentColor: LauncherPrefs.AccentColor? = null
@@ -78,6 +85,7 @@ class AppDrawerActivity : AppCompatActivity() {
 
         grid = findViewById(R.id.apps_grid)
         titleView = findViewById(R.id.title)
+        searchField = findViewById(R.id.app_search)
         pageIndicator = findViewById(R.id.page_indicator)
         gridFocusHighlight = findViewById<View>(R.id.grid_focus_highlight).apply {
             background = gridFocusDrawable
@@ -113,6 +121,10 @@ class AppDrawerActivity : AppCompatActivity() {
             onLongClick = { pos -> currentPageItems.getOrNull(pos)?.let { showContextMenu(it) } },
             onFocusChanged = { pos -> currentPageItems.getOrNull(pos)?.let { titleView.text = it.label } },
         )
+        searchField.doAfterTextChanged {
+            searchQuery = it?.toString().orEmpty()
+            applySearch()
+        }
         grid.itemAnimator = null
         grid.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             val oldPageSize = pageSize
@@ -121,7 +133,7 @@ class AppDrawerActivity : AppCompatActivity() {
         }
 
         Softkeys.of(this).set {
-            left(getString(R.string.softkey_back)) { finish() }
+            left("Search") { toggleSearch(showKeyboard = true) }
             right(getString(R.string.softkey_options)) { optionsForFocused() }
         }
     }
@@ -178,6 +190,8 @@ class AppDrawerActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 allApps = apps
+                applySearch()
+                if (searchQuery.isNotEmpty()) return@runOnUiThread
                 if (listMode) {
                     bindList()
                 } else {
@@ -188,15 +202,55 @@ class AppDrawerActivity : AppCompatActivity() {
         }.start()
     }
 
+    private fun toggleSearch(showKeyboard: Boolean = true, initialQuery: String? = null) {
+        searchVisible = !searchVisible
+        searchField.visibility = if (searchVisible) View.VISIBLE else View.GONE
+        if (searchVisible) {
+            Softkeys.of(this).set { left("Close search") { toggleSearch() }; right(getString(R.string.softkey_options)) { optionsForFocused() } }
+            if (initialQuery != null) searchField.setText(initialQuery)
+            searchField.showSoftInputOnFocus = showKeyboard
+            searchField.requestFocus()
+            if (!showKeyboard) {
+                searchField.setSelection(searchField.length())
+                (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(searchField.windowToken, 0)
+            }
+        } else {
+            searchField.showSoftInputOnFocus = true
+            searchQuery = ""
+            searchField.setText("")
+            Softkeys.of(this).set { left("Search") { toggleSearch() }; right(getString(R.string.softkey_options)) { optionsForFocused() } }
+            grid.requestFocus()
+            applySearch()
+        }
+    }
+
+    private fun applySearch() {
+        val source = matchingApps()
+        currentPage = 0
+        currentPageItems = source
+        if (listMode) {
+            listAdapter.submit(source.map { Row(title = it.label, icon = it.icon, keepWhiteTitle = true, badgeColor = if (hasNotification(it)) NotificationDotColor.forIcon(it.key, it.icon) else null) })
+            pageIndicator.visibility = View.GONE
+            if (source.isNotEmpty()) grid.post { focusItemAt(0) }
+        } else {
+            bindPage(0)
+        }
+    }
+
+    private fun matchingApps(): List<AppInfo> {
+        val query = searchQuery.trim()
+        return if (query.isEmpty()) allApps else allApps.filter { it.label.contains(query, ignoreCase = true) }
+    }
+
     private fun hasNotification(app: AppInfo): Boolean =
         prefs.isIconNotificationDotEnabled() && NotificationCounts.packagesWithNotifications.contains(app.packageName)
 
     private fun totalPages(): Int =
-        if (allApps.isEmpty()) 1 else ceil(allApps.size / pageSize.toDouble()).toInt()
+        if (matchingApps().isEmpty()) 1 else ceil(matchingApps().size / pageSize.toDouble()).toInt()
 
     /** Bind the full app list in one go - no pages, no dots, just a normal scroll. */
     private fun bindList(focusPosition: Int? = null) {
-        currentPageItems = allApps
+        currentPageItems = matchingApps()
         listAdapter.submit(
             currentPageItems.map {
                 Row(
@@ -218,9 +272,10 @@ class AppDrawerActivity : AppCompatActivity() {
     private fun bindPage(page: Int, focusPosition: Int? = null) {
         hideGridFocusHighlight()
         currentPage = page
+        val apps = matchingApps()
         val start = page * pageSize
-        val end = min(start + pageSize, allApps.size)
-        currentPageItems = if (start < end) allApps.subList(start, end) else emptyList()
+        val end = min(start + pageSize, apps.size)
+        currentPageItems = if (start < end) apps.subList(start, end) else emptyList()
         gridAdapter.submit(currentPageItems)
 
         val pages = totalPages()
@@ -316,7 +371,7 @@ class AppDrawerActivity : AppCompatActivity() {
     }
 
     private fun lastRowStartForPage(page: Int): Int {
-        val count = min(pageSize, allApps.size - page * pageSize).coerceAtLeast(1)
+        val count = min(pageSize, matchingApps().size - page * pageSize).coerceAtLeast(1)
         return ((count - 1) / gridColumns) * gridColumns
     }
 
@@ -358,7 +413,7 @@ class AppDrawerActivity : AppCompatActivity() {
             target < 0 -> {
                 val prev = currentPage - 1
                 if (prev < 0) return
-                val prevCount = min(pageSize, allApps.size - prev * pageSize)
+                val prevCount = min(pageSize, matchingApps().size - prev * pageSize)
                 bindPage(prev, focusPosition = prevCount - 1)
             }
             target >= itemCount -> {
@@ -374,6 +429,48 @@ class AppDrawerActivity : AppCompatActivity() {
         if (itemCount == 0) return
         val target = (focusedPosition() + delta).coerceIn(0, itemCount - 1)
         focusItemAt(target)
+    }
+
+    /** Previous/next page for keypad * and #. Lists scroll by the visible page size. */
+    private fun movePageBy(delta: Int) {
+        if (listMode) {
+            val target = (focusedPosition() + delta * pageSize).coerceIn(0, (currentPageItems.size - 1).coerceAtLeast(0))
+            focusItemAt(target)
+        } else {
+            goToPage(currentPage + delta, landOnLastRow = delta < 0)
+        }
+    }
+
+    private fun openKeypadSearch(initialQuery: String) {
+        if (!searchVisible) {
+            toggleSearch(showKeyboard = false, initialQuery = initialQuery)
+        } else {
+            searchField.append(initialQuery)
+        }
+    }
+
+    /** Focus the first alphabetically sorted visible app whose label begins with [letter]. */
+    private fun jumpToAppInitial(letter: Char) {
+        val index = allApps.indexOfFirst { it.label.startsWith(letter.toString(), ignoreCase = true) }
+        if (index < 0) return
+        if (listMode) {
+            bindList(index)
+        } else {
+            bindPage(index / pageSize, index % pageSize)
+        }
+    }
+
+    private fun handleT9Jump(keyCode: Int, eventTime: Long): Boolean {
+        val letters = T9_LETTERS[keyCode] ?: return false
+        t9LetterIndex = if (keyCode == lastT9Key && eventTime - lastT9PressAt <= T9_MULTITAP_TIMEOUT_MS) {
+            (t9LetterIndex + 1) % letters.length
+        } else {
+            0
+        }
+        lastT9Key = keyCode
+        lastT9PressAt = eventTime
+        jumpToAppInitial(letters[t9LetterIndex])
+        return true
     }
 
     // --------------------------------------------------------------- Actions
@@ -473,12 +570,18 @@ class AppDrawerActivity : AppCompatActivity() {
     // ----------------------------------------------------------- Key handling
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (searchVisible) return super.onKeyDown(keyCode, event)
         when (keyCode) {
             in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 -> {
-                // Only the grid has a fixed nine-per-page shape for this
-                // feature-phone shortcut to map onto; the list just scrolls.
-                if (!listMode) {
-                    currentPageItems.getOrNull(keyCode - KeyEvent.KEYCODE_1)?.let { launchAppByKey(it.key) }
+                if (event.repeatCount > 0) return true
+                when (prefs.getDrawerKeypadAction()) {
+                    LauncherPrefs.DrawerKeypadAction.SEARCH ->
+                        openKeypadSearch(('0'.code + keyCode - KeyEvent.KEYCODE_0).toChar().toString())
+                    LauncherPrefs.DrawerKeypadAction.T9_JUMP -> handleT9Jump(keyCode, event.eventTime)
+                    LauncherPrefs.DrawerKeypadAction.GRID_POSITION -> {
+                        // Only the grid has a fixed nine-per-page shape for this shortcut.
+                        if (!listMode) currentPageItems.getOrNull(keyCode - KeyEvent.KEYCODE_1)?.let { launchAppByKey(it.key) }
+                    }
                 }
                 return true
             }
@@ -491,12 +594,45 @@ class AppDrawerActivity : AppCompatActivity() {
             KeyEvent.KEYCODE_DPAD_RIGHT -> { if (!listMode) { moveFocusByColumn(1); return true } }
             KeyEvent.KEYCODE_DPAD_LEFT -> { if (!listMode) { moveFocusByColumn(-1); return true } }
         }
+        val typed = event.unicodeChar.toChar()
+        if (typed.isLetterOrDigit()) {
+            when (prefs.getDrawerKeypadAction()) {
+                LauncherPrefs.DrawerKeypadAction.SEARCH -> {
+                    openKeypadSearch(typed.toString())
+                    return true
+                }
+                LauncherPrefs.DrawerKeypadAction.T9_JUMP -> {
+                    if (typed.isLetter()) jumpToAppInitial(typed)
+                    return true
+                }
+                LauncherPrefs.DrawerKeypadAction.GRID_POSITION -> Unit
+            }
+        }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && (event.keyCode == KeyEvent.KEYCODE_STAR || event.keyCode == KeyEvent.KEYCODE_POUND)) {
+            movePageBy(if (event.keyCode == KeyEvent.KEYCODE_STAR) -1 else 1)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     companion object {
         private const val GRID_COLUMNS = 3
         private const val PAGE_SIZE = 9
         private const val GRID_HIGHLIGHT_SLIDE_MS = 150L
+        private const val T9_MULTITAP_TIMEOUT_MS = 1_000L
+        private val T9_LETTERS = mapOf(
+            KeyEvent.KEYCODE_2 to "abc",
+            KeyEvent.KEYCODE_3 to "def",
+            KeyEvent.KEYCODE_4 to "ghi",
+            KeyEvent.KEYCODE_5 to "jkl",
+            KeyEvent.KEYCODE_6 to "mno",
+            KeyEvent.KEYCODE_7 to "pqrs",
+            KeyEvent.KEYCODE_8 to "tuv",
+            KeyEvent.KEYCODE_9 to "wxyz",
+        )
     }
 }

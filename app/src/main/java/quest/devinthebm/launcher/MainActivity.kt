@@ -7,13 +7,16 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -23,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.doOnLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.theonionsarewatching.yapchik.SoftkeyBar
 import com.theonionsarewatching.yapchik.SoftkeyController
 import com.theonionsarewatching.yapchik.Softkeys
 import quest.devinthebm.launcher.data.AppRepository
@@ -143,17 +147,43 @@ class MainActivity : AppCompatActivity() {
                 val edge = (it.height - slot) / 2
                 it.setPadding(0, edge, 0, edge)
                 adapter.setItemHeightPx(slot)
-                it.post { centerRailItem(focusedRailIndex) }
+                it.post {
+                    centerRailItem(railCenterPosition())
+                    if (!railExpanded) focusAppMenu()
+                }
             }
         }
         rail.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) = updateWheelCurve()
         })
 
-        appMenuButton = findViewById<ImageView>(R.id.softkey_center).apply {
+        // Yapchik owns the left and right softkey labels; the app grid is the
+        // middle child of their row, not a separate overlay over the bar.
+        appMenuButton = ImageView(this).apply {
+            id = View.generateViewId()
             background = SpotlightDrawable()
+            setImageResource(R.drawable.ic_apps_dots)
             setOnClickListener { openAppDrawer() }
             setOnLongClickListener { openOptions(); true }
+            contentDescription = getString(R.string.content_apps)
+            isClickable = true
+            isFocusable = true
+            // Yapchik's bar is attached after the activity content. On a
+            // touchscreen/keypad hybrid the window can still be in touch mode
+            // at that point; this lets Home explicitly restore grid focus.
+            isFocusableInTouchMode = true
+            // Match the original XML button: Android's rectangular focus
+            // highlight would cover the softer SpotlightDrawable glow.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
+            scaleType = ImageView.ScaleType.CENTER
+            setPadding(
+                (18 * resources.displayMetrics.density).toInt(),
+                0,
+                (18 * resources.displayMetrics.density).toInt(),
+                0,
+            )
             // The center key opens the wheel with the middle icon selected.
             // Right has no focusable target and is swallowed.
             setOnKeyListener { _, keyCode, event ->
@@ -182,6 +212,7 @@ class MainActivity : AppCompatActivity() {
                 right(label = { rightKeyLabel() }) { openRightKeyApp() }
             }
         }
+        addAppMenuButtonToSoftkeyBar()
 
         // Back opens the app drawer; long-pressing it launches the configured app instead
         // (see onKeyDown/onKeyUp, which suppress this callback when a long-press fires).
@@ -198,7 +229,7 @@ class MainActivity : AppCompatActivity() {
         if (!expanded) clearRailHighlight()
         val density = resources.displayMetrics.density
         rail.animate()
-            .translationX(if (expanded) 0f else -42f * density)
+            .translationX(if (expanded) 0f else -CLOSED_RAIL_OFFSET_DP * density)
             .setDuration(160)
             .setInterpolator(DecelerateInterpolator())
             .start()
@@ -208,6 +239,31 @@ class MainActivity : AppCompatActivity() {
             clockGroup.layoutParams = params
         }
         updateWheelCurve()
+    }
+
+    /** Place the grid action between Yapchik's equally weighted left/right labels. */
+    private fun addAppMenuButtonToSoftkeyBar() {
+        val content = findViewById<ViewGroup>(android.R.id.content)
+        val bar = (0 until content.childCount)
+            .map { content.getChildAt(it) }
+            .filterIsInstance<SoftkeyBar>()
+            .firstOrNull() ?: return
+        val labelRow = bar.getChildAt(1) as? LinearLayout ?: return
+        // The spotlight draws well beyond the button and above the bar.
+        // Yapchik clips its children by default, so let the light bloom out.
+        bar.clipChildren = false
+        bar.clipToPadding = false
+        labelRow.clipChildren = false
+        labelRow.clipToPadding = false
+        if (appMenuButton.parent === labelRow) return
+        (appMenuButton.parent as? ViewGroup)?.removeView(appMenuButton)
+        labelRow.addView(
+            appMenuButton, 1,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
     }
 
     /** Detect rail swipes before allowing an icon to interpret the same gesture as a tap. */
@@ -279,23 +335,33 @@ class MainActivity : AppCompatActivity() {
         rail.post { updateWheelCurve() }
     }
 
+    /** The closed rail is a five-icon peek, not a list parked at item zero. */
+    private fun railCenterPosition(): Int = if (railExpanded) {
+        focusedRailIndex
+    } else {
+        minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, (adapter.itemCount - 1).coerceAtLeast(0))
+    }
+
     private fun updateWheelCurve() {
         val slot = adapter.itemHeightPx
         if (slot <= 0) return
         val density = resources.displayMetrics.density
         val center = rail.height / 2f
-        // The icons sit on one shared elliptical track rather than each taking
-        // an independent sideways offset. Scale and opacity provide the depth
-        // cues that make the vertical motion read as a turning wheel.
+        // Reuse the original crescent track from before the wheel animation:
+        // center +9dp, outer -5dp when closed (a slightly flatter crescent);
+        // center +16dp, adjacent +12dp, outer 0dp when open. Derive it from
+        // each row's visible position so it follows the wheel as it scrolls.
         val verticalRadius = slot * 2.35f
-        val horizontalRadius = 22f * density
         for (i in 0 until rail.childCount) {
             val row = rail.getChildAt(i)
             val relativeY = (row.top + row.bottom) / 2f - center
             val normalizedY = (relativeY / verticalRadius).coerceIn(-0.98f, 0.98f)
             val depth = kotlin.math.sqrt(1f - normalizedY * normalizedY)
+            val distance = kotlin.math.abs(relativeY) / slot
+            val halfSpan = (distance / 2f).coerceIn(0f, 1f)
+            val curve = 1f - halfSpan * halfSpan
             val circle = row.findViewById<View>(R.id.circle)
-            circle.translationX = if (railExpanded) horizontalRadius * (depth - 1f) else -9f * density
+            circle.translationX = (if (railExpanded) 16f * curve else -5f + 14f * curve) * density
             circle.scaleX = 0.72f + 0.28f * depth
             circle.scaleY = circle.scaleX
             circle.alpha = 0.42f + 0.58f * depth
@@ -427,6 +493,10 @@ class MainActivity : AppCompatActivity() {
         updateClock()
         refreshShortcuts()
         softKeys.invalidate()
+        findViewById<ViewGroup>(android.R.id.content).post {
+            addAppMenuButtonToSoftkeyBar()
+            focusAppMenu()
+        }
         resetHomeFocus()
         NotificationCounts.addListener(notifListener)
         updateNotifSummary()
@@ -491,8 +561,9 @@ class MainActivity : AppCompatActivity() {
                     focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
                 }
                 rail.post {
-                    centerRailItem(focusedRailIndex)
+                    centerRailItem(railCenterPosition())
                     if (railExpanded) setRailHighlight(focusedRailIndex, animate = false)
+                    else focusAppMenu()
                 }
             }
         }.start()
@@ -544,7 +615,9 @@ class MainActivity : AppCompatActivity() {
     private fun resetHomeFocus() {
         wheelAnimator?.cancel()
         setRailExpanded(false)
-        focusAppMenu()
+        // RecyclerView may reclaim focus during its next data/layout pass;
+        // queue Home's default focus behind that pass.
+        rail.post { focusAppMenu() }
     }
 
     private fun focusAppMenu() = appMenuButton.post { appMenuButton.requestFocus() }
@@ -687,5 +760,8 @@ class MainActivity : AppCompatActivity() {
         // Shown at most once per process so we don't nag on every resume.
         private var defaultPromptShown = false
         const val RAIL_HIGHLIGHT_FADE_MS = 180L
+        // With an 84dp rail and 54dp icons this leaves ~half the middle icon
+        // visible, while the outer icons only peek in from the edge.
+        private const val CLOSED_RAIL_OFFSET_DP = 50f
     }
 }

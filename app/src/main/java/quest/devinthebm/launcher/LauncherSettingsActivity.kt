@@ -24,6 +24,7 @@ class LauncherSettingsActivity : BaseListActivity() {
     private var leftKeyRow = -1
     private var iconPackRow = -1
     private var drawerViewRow = -1
+    private var drawerKeypadRow = -1
     private var notifAccessRow = -1
     private var notifCallsRow = -1
     private var notifMessagesRow = -1
@@ -73,6 +74,7 @@ class LauncherSettingsActivity : BaseListActivity() {
                 prefs.setDrawerListViewEnabled(!prefs.isDrawerListViewEnabled())
                 refreshRows()
             },
+            Setting(getString(R.string.settings_drawer_keypad)) { chooseDrawerKeypadAction() },
             Setting(getString(R.string.settings_notif_access)) { openNotificationAccessSettings() },
             Setting(getString(R.string.settings_notif_calls)) {
                 prefs.setCallBadgeEnabled(!prefs.isCallBadgeEnabled())
@@ -102,6 +104,7 @@ class LauncherSettingsActivity : BaseListActivity() {
         rightKeyRow = settings.indexOfFirst { it.title == getString(R.string.settings_right_key) }
         iconPackRow = settings.indexOfFirst { it.title == getString(R.string.settings_icon_pack) }
         drawerViewRow = settings.indexOfFirst { it.title == getString(R.string.settings_drawer_view) }
+        drawerKeypadRow = settings.indexOfFirst { it.title == getString(R.string.settings_drawer_keypad) }
         notifAccessRow = settings.indexOfFirst { it.title == getString(R.string.settings_notif_access) }
         notifCallsRow = settings.indexOfFirst { it.title == getString(R.string.settings_notif_calls) }
         notifMessagesRow = settings.indexOfFirst { it.title == getString(R.string.settings_notif_messages) }
@@ -169,6 +172,7 @@ class LauncherSettingsActivity : BaseListActivity() {
                 drawerViewRow -> getString(
                     if (prefs.isDrawerListViewEnabled()) R.string.settings_drawer_view_list else R.string.settings_drawer_view_grid,
                 )
+                drawerKeypadRow -> getString(prefs.getDrawerKeypadAction().labelRes)
                 notifAccessRow -> notifAccessTrailing
                 notifCallsRow -> onOff(prefs.isCallBadgeEnabled())
                 notifMessagesRow -> onOff(prefs.isMessageBadgeEnabled())
@@ -209,6 +213,21 @@ class LauncherSettingsActivity : BaseListActivity() {
                 val percent = values[which]
                 prefs.setIconSizePercent(percent)
                 Toast.makeText(this, getString(R.string.settings_icon_size_set, labels[which]), Toast.LENGTH_SHORT).show()
+                refreshRows()
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun chooseDrawerKeypadAction() {
+        val options = LauncherPrefs.DrawerKeypadAction.entries.toTypedArray()
+        val labels = options.map { getString(it.labelRes) }.toTypedArray()
+        val checked = options.indexOf(prefs.getDrawerKeypadAction()).coerceAtLeast(0)
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.settings_drawer_keypad)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                prefs.setDrawerKeypadAction(options[which])
+                Toast.makeText(this, getString(R.string.settings_drawer_keypad_set, labels[which]), Toast.LENGTH_SHORT).show()
                 refreshRows()
                 dialog.dismiss()
             }
