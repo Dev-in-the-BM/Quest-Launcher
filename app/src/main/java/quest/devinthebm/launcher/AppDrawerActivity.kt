@@ -68,6 +68,12 @@ class AppDrawerActivity : ThemedActivity() {
     private var searchQuery = ""
     private var gridColumns = GRID_COLUMNS
     private var pageSize = PAGE_SIZE
+    // Search/IME and transient window changes can temporarily reduce the
+    // RecyclerView's measured height. Do not let that resize icons or change
+    // page boundaries while the user is navigating; retain the largest height
+    // measured for this activity configuration.
+    private var stableGridHeight = 0
+    private var pendingGridFocusPosition = RecyclerView.NO_POSITION
     private var lastT9Key = KeyEvent.KEYCODE_UNKNOWN
     private var t9LetterIndex = 0
     private var lastT9PressAt = 0L
@@ -115,6 +121,16 @@ class AppDrawerActivity : ThemedActivity() {
         // focus for a frame whenever a page swap detaches the previously
         // focused child - visible as the whole row/grid highlighting.
         grid.isFocusable = false
+        grid.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) {
+                if (pendingGridFocusPosition == RecyclerView.NO_POSITION ||
+                    grid.getChildAdapterPosition(view) != pendingGridFocusPosition) return
+                pendingGridFocusPosition = RecyclerView.NO_POSITION
+                view.requestFocus()
+            }
+
+            override fun onChildViewDetachedFromWindow(view: View) = Unit
+        })
 
         gridAdapter = AppGridAdapter(
             onClick = { launchAppByKey(it.key) },
@@ -177,7 +193,8 @@ class AppDrawerActivity : ThemedActivity() {
             return
         }
         val gridWidth = grid.width
-        val gridHeight = grid.height
+        stableGridHeight = maxOf(stableGridHeight, grid.height)
+        val gridHeight = stableGridHeight
         if (gridWidth <= 0 || gridHeight <= 0) return
 
         gridColumns = GRID_COLUMNS
@@ -243,7 +260,7 @@ class AppDrawerActivity : ThemedActivity() {
         if (listMode) {
             listAdapter.submit(source.map { Row(title = it.label, icon = it.icon, keepWhiteTitle = true, badgeColor = if (hasNotification(it)) NotificationDotColor.forIcon(it.key, it.icon) else null) })
             pageIndicator.visibility = View.GONE
-            if (source.isNotEmpty()) grid.post { focusItemAt(0) }
+            if (source.isNotEmpty() && !searchField.hasFocus()) grid.post { focusItemAt(0) }
         } else {
             bindPage(0)
         }
@@ -275,6 +292,7 @@ class AppDrawerActivity : ThemedActivity() {
         )
         pageIndicator.visibility = View.GONE
         grid.post {
+            if (searchField.hasFocus()) return@post
             if (currentPageItems.isEmpty()) return@post
             focusItemAt(focusPosition?.coerceIn(0, currentPageItems.size - 1) ?: 0)
         }
@@ -296,6 +314,7 @@ class AppDrawerActivity : ThemedActivity() {
         pageIndicator.setCurrentPage(page)
 
         grid.post {
+            if (searchField.hasFocus()) return@post
             if (currentPageItems.isEmpty()) return@post
             val target = focusPosition?.coerceAtMost(currentPageItems.size - 1) ?: 0
             focusItemAt(target)
@@ -313,18 +332,12 @@ class AppDrawerActivity : ThemedActivity() {
     private fun focusItemAt(target: Int) {
         val lm = grid.layoutManager ?: return
         lm.findViewByPosition(target)?.let {
+            pendingGridFocusPosition = RecyclerView.NO_POSITION
             it.requestFocus()
             return
         }
+        pendingGridFocusPosition = target
         grid.scrollToPosition(target)
-        grid.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
-            override fun onChildViewAttachedToWindow(view: View) {
-                if (grid.getChildAdapterPosition(view) != target) return
-                grid.removeOnChildAttachStateChangeListener(this)
-                view.requestFocus()
-            }
-            override fun onChildViewDetachedFromWindow(view: View) = Unit
-        })
     }
 
     /** Moves one focus surface beneath the grid, instead of snapping a new
@@ -407,7 +420,7 @@ class AppDrawerActivity : ThemedActivity() {
             targetRow > lastRow -> goToPage(currentPage + 1, landOnLastRow = false)
             else -> {
                 val target = (targetRow * gridColumns + column).coerceAtMost(itemCount - 1)
-                grid.layoutManager?.findViewByPosition(target)?.requestFocus()
+                focusItemAt(target)
             }
         }
     }
@@ -433,7 +446,7 @@ class AppDrawerActivity : ThemedActivity() {
             target >= itemCount -> {
                 if (currentPage + 1 < totalPages()) bindPage(currentPage + 1, focusPosition = 0)
             }
-            else -> grid.layoutManager?.findViewByPosition(target)?.requestFocus()
+            else -> focusItemAt(target)
         }
     }
 

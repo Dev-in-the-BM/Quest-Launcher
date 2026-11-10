@@ -41,6 +41,9 @@ the three-soft-key layout (left / center / right) KaiOS users already know.
   Launcher Settings):
   - **Grid**: a 3x3 icon page at a time, tracked by a column of dots on the right.
     Number keys 1-9 launch the matching icon on the current page.
+    Icon sizing and page boundaries remain stable while search or transient
+    window changes alter the available height; D-pad navigation can focus
+    off-screen cells without losing the selected app.
   - **List**: one continuous scroll, icon + label per row — no pages, no
     dots, just normal scrolling.
 - Long-press (or the Options soft key) on any app to:
