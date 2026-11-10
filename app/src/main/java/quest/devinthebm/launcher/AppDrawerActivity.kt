@@ -86,9 +86,21 @@ class AppDrawerActivity : ThemedActivity() {
         grid = findViewById(R.id.apps_grid)
         titleView = findViewById(R.id.title)
         searchField = findViewById(R.id.app_search)
+        if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2) {
+            searchField.setBackgroundResource(R.drawable.m2_search_background)
+            val horizontal = resources.getDimensionPixelSize(R.dimen.m2_search_padding_horizontal)
+            val vertical = resources.getDimensionPixelSize(R.dimen.m2_search_padding_vertical)
+            searchField.setPadding(horizontal, vertical, horizontal, vertical)
+            searchField.minHeight = resources.getDimensionPixelSize(R.dimen.m2_search_min_height)
+            searchField.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.m2_on_surface))
+            searchField.setHintTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.m2_secondary_text))
+        }
         pageIndicator = findViewById(R.id.page_indicator)
         gridFocusHighlight = findViewById<View>(R.id.grid_focus_highlight).apply {
-            background = gridFocusDrawable
+            background = when (launcherTheme.components) {
+                quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS -> gridFocusDrawable
+                quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2 -> getDrawable(R.drawable.m2_grid_focus)
+            }
             isSelected = true
         }
 
@@ -333,7 +345,9 @@ class AppDrawerActivity : ThemedActivity() {
             parent.getLocationInWindow(parentLocation)
             val left = iconLocation[0] - parentLocation[0]
             val top = iconLocation[1] - parentLocation[1]
-            gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
+            if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) {
+                gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
+            }
             val params = gridFocusHighlight.layoutParams as FrameLayout.LayoutParams
             val sizeChanged = params.width != iconFrame.width || params.height != iconFrame.height
             params.width = iconFrame.width

@@ -5,6 +5,7 @@
     android:layout_marginHorizontal="6dp"
     android:layout_marginVertical="2dp"
     android:background="?attr/launcherRowBackground"
+    android:minHeight="?attr/launcherUtilityRowMinHeight"
     android:clickable="true"
     android:focusable="true">
 
@@ -58,7 +59,7 @@
             android:layout_marginStart="10dp"
             android:duplicateParentState="true"
             android:textColor="?attr/launcherSecondaryText"
-            android:textSize="13sp" />
+            android:textSize="?attr/launcherRowTrailingSize" />
     </LinearLayout>
 
 </FrameLayout>

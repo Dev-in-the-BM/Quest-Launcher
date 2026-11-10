@@ -16,8 +16,8 @@
         android:gravity="center"
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
-        android:textColor="?attr/colorAccent"
-        android:textSize="@dimen/screen_title"
+        android:textColor="?attr/launcherScreenTitleColor"
+        android:textSize="?attr/launcherScreenTitleSize"
         android:textStyle="bold" />
 
     <androidx.recyclerview.widget.RecyclerView

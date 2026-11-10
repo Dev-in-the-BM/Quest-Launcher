@@ -50,6 +50,11 @@ object LauncherThemeCatalog {
         ThemeDescriptor(ThemeId("material2"), R.string.theme_material2, R.style.Theme_QuestLauncher_Material2, LauncherComponentSelection.Material2, LauncherPresentation(true)),
     )
     val defaultId = ThemeId("kaios")
+    init {
+        require(descriptors.map { it.id }.distinct().size == descriptors.size) { "Theme IDs must be unique" }
+        require(descriptors.count { it.id == defaultId } == 1) { "Catalog must have exactly one registered default" }
+        require(descriptors.all { it.styleRes != 0 && it.displayNameRes != 0 }) { "Theme descriptors need local style and name resources" }
+    }
     fun resolve(id: ThemeId?) = descriptors.firstOrNull { it.id == id } ?: descriptors.first { it.id == defaultId }
 }
 

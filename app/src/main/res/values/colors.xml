@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <bool name="m2_light_system_bars">true</bool>
     <color name="kai_bg">#0F1117</color>
     <color name="kai_accent">#1FC3F4</color>
     <color name="kai_text">#FFFFFF</color>
@@ -27,9 +28,11 @@
     <color name="m2_elevated_surface">#FFFFFF</color>
     <color name="m2_on_surface">#191C1D</color>
     <color name="m2_secondary_text">#5F6368</color>
-    <color name="m2_focus_outline">#1A77C9</color>
-    <color name="m2_focus_fill">#E3EEFC</color>
-    <color name="m2_settings_focus_fill">#F1F3F4</color>
+    <color name="m2_focus_fill">#C4C7C5</color>
+    <color name="m2_settings_focus_fill">#E0E0E0</color>
     <color name="m2_divider">#E0E0E0</color>
     <color name="m2_control_ink">#3F484B</color>
+    <color name="m2_on_primary">#FFFFFF</color>
+    <color name="m2_outline">#E0E0E0</color>
+    <color name="m2_search_fill">#F1F3F4</color>
 </resources>

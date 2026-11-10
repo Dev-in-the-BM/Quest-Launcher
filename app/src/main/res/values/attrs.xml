@@ -5,6 +5,15 @@
     <attr name="launcherPlainText" format="color" />
     <attr name="launcherSecondaryText" format="color" />
     <attr name="launcherFocusFill" format="color" />
-    <attr name="launcherFocusStroke" format="color" />
     <attr name="launcherRowBackground" format="reference" />
+    <attr name="launcherHomeBackground" format="reference" />
+    <attr name="launcherRailPanel" format="reference" />
+    <attr name="launcherOnAccentText" format="color" />
+    <attr name="launcherRailFocusBackground" format="reference" />
+    <attr name="launcherRailAddBackground" format="reference" />
+    <attr name="launcherRailAddTint" format="color" />
+    <attr name="launcherScreenTitleColor" format="color" />
+    <attr name="launcherScreenTitleSize" format="dimension" />
+    <attr name="launcherUtilityRowMinHeight" format="dimension" />
+    <attr name="launcherRowTrailingSize" format="dimension" />
 </resources>

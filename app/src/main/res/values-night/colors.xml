@@ -1,4 +1,5 @@
 <resources>
+    <bool name="m2_light_system_bars">false</bool>
     <color name="m2_primary">#8AB4F8</color>
     <color name="m2_primary_variant">#8AB4F8</color>
     <color name="m2_action">#8AB4F8</color>
@@ -8,9 +9,11 @@
     <color name="m2_elevated_surface">#292A2D</color>
     <color name="m2_on_surface">#E8EAED</color>
     <color name="m2_secondary_text">#9AA0A6</color>
-    <color name="m2_focus_outline">#98BDF9</color>
-    <color name="m2_focus_fill">#2D333D</color>
-    <color name="m2_settings_focus_fill">#292A2D</color>
+    <color name="m2_focus_fill">#5F6368</color>
+    <color name="m2_settings_focus_fill">#484A4D</color>
     <color name="m2_divider">#3C4043</color>
     <color name="m2_control_ink">#BFC8CB</color>
+    <color name="m2_on_primary">#202124</color>
+    <color name="m2_outline">#5F6368</color>
+    <color name="m2_search_fill">#3C4043</color>
 </resources>

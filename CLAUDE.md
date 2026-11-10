@@ -41,10 +41,10 @@
 
 ## Project structure notes
 
-- `app/src/main/java/com/flipos/launcher/` — all activities live flat in the
+- `app/src/main/java/quest/devinthebm/launcher/` — activities live in the
   root package; `data/` for prefs/repositories, `ui/` for adapters/custom
   views, `service/` for the notification listener, `util/` for small
-  extensions.
+  extensions, and `theme/` for the theme catalog/lifecycle.
 - `BaseListActivity` is shared scaffolding (title bar + RecyclerView +
   SoftKeyBar) for every vertical list screen (Options, Launcher Settings,
   Hide Apps, Shortcuts, App/Activity Picker, Notices). It also owns the
@@ -55,7 +55,14 @@
   `NoticeRowAdapter` is the richer 3-line notice row.
 - `LauncherPrefs` is the single SharedPreferences wrapper — all settings
   (icon size/shape/pack, accent color, drawer view mode, badges, shortcuts,
-  hidden apps, per-app icon overrides) live there.
+  hidden apps, per-app icon overrides, and the selected launcher theme) live
+  there. Theme selection is stored under `launcher_theme_id`.
+- `LauncherThemeCatalog` defines the stable `kaios` and `material2` IDs;
+  KaiOS is the fallback for missing or unknown IDs. `ThemedActivity` applies
+  the selected style before view inflation and refreshes stale activities when
+  the selection changes. Palette and focus resources have `values/` and
+  `values-night/` variants; keep day/night style definitions shared so night
+  resources don't replace the complete theme.
 - `IconShapeRenderer` masks app icons into the user's chosen shape (adaptive
   icons composite their own fg/bg layers then get clipped; legacy icons get
   an optional synthesized tinted background disc).

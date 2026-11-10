@@ -8,8 +8,17 @@
         <item name="launcherPlainText">@color/kai_text</item>
         <item name="launcherSecondaryText">@color/text_secondary_on_item</item>
         <item name="launcherFocusFill">@color/kai_accent</item>
-        <item name="launcherFocusStroke">@color/kai_accent</item>
         <item name="launcherRowBackground">@drawable/bg_item_focus</item>
+        <item name="launcherHomeBackground">@android:color/transparent</item>
+        <item name="launcherRailPanel">@drawable/bg_rail_panel</item>
+        <item name="launcherOnAccentText">@color/kai_on_accent</item>
+        <item name="launcherRailFocusBackground">@drawable/bg_rail_focus</item>
+        <item name="launcherRailAddBackground">@drawable/bg_circle_add</item>
+        <item name="launcherRailAddTint">@android:color/white</item>
+        <item name="launcherScreenTitleColor">?attr/colorAccent</item>
+        <item name="launcherScreenTitleSize">@dimen/screen_title</item>
+        <item name="launcherUtilityRowMinHeight">0dp</item>
+        <item name="launcherRowTrailingSize">13sp</item>
         <item name="android:windowBackground">@color/kai_bg</item>
         <item name="android:colorBackground">@color/kai_bg</item>
         <item name="android:statusBarColor">@color/kai_softkey_bg</item>
@@ -33,8 +42,8 @@
         <item name="android:windowBackground">@color/m2_background</item>
         <item name="android:statusBarColor">@color/m2_background</item>
         <item name="android:navigationBarColor">@color/m2_background</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightStatusBar">@bool/m2_light_system_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/m2_light_system_bars</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
         <item name="launcherWindowSurface">@color/m2_background</item>
@@ -43,11 +52,34 @@
         <item name="launcherPlainText">@color/m2_on_surface</item>
         <item name="launcherSecondaryText">@color/m2_secondary_text</item>
         <item name="launcherFocusFill">@color/m2_settings_focus_fill</item>
-        <item name="launcherFocusStroke">@color/m2_focus_outline</item>
         <item name="launcherRowBackground">@drawable/m2_row_focus</item>
+        <item name="launcherHomeBackground">@color/m2_background</item>
+        <item name="launcherRailPanel">@android:color/transparent</item>
+        <item name="launcherOnAccentText">@color/m2_on_primary</item>
+        <item name="launcherRailFocusBackground">@drawable/m2_rail_focus</item>
+        <item name="launcherRailAddBackground">@drawable/m2_rail_add</item>
+        <item name="launcherRailAddTint">@color/m2_primary</item>
+        <item name="launcherScreenTitleColor">@color/m2_on_surface</item>
+        <item name="launcherScreenTitleSize">@dimen/m2_screen_title</item>
+        <item name="launcherUtilityRowMinHeight">48dp</item>
+        <item name="launcherRowTrailingSize">14sp</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.QuestLauncher.Material2.AlertDialog</item>
+        <item name="popupMenuStyle">@style/Widget.QuestLauncher.Material2.PopupMenu</item>
+        <item name="android:windowShowWallpaper">false</item>
         <item name="android:textColorPrimary">@color/m2_on_surface</item>
         <item name="android:textColorSecondary">@color/m2_secondary_text</item>
         <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <style name="ThemeOverlay.QuestLauncher.Material2.AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/m2_elevated_surface</item>
+        <item name="colorOnSurface">@color/m2_on_surface</item>
+        <item name="colorPrimary">@color/m2_action</item>
+        <item name="android:colorBackground">@color/m2_elevated_surface</item>
+    </style>
+
+    <style name="Widget.QuestLauncher.Material2.PopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:popupBackground">@drawable/m2_popup_background</item>
     </style>
 
     <!-- Home screen: show the user's wallpaper behind the clock & shortcuts.

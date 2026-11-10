@@ -9,4 +9,8 @@
     <dimen name="screen_title">25sp</dimen>
     <dimen name="page_dot_size">8dp</dimen>
     <dimen name="page_dot_margin">5dp</dimen>
+    <dimen name="m2_search_padding_horizontal">12dp</dimen>
+    <dimen name="m2_search_padding_vertical">10dp</dimen>
+    <dimen name="m2_search_min_height">48dp</dimen>
+    <dimen name="m2_screen_title">20sp</dimen>
 </resources>

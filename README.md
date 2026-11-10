@@ -96,6 +96,9 @@ key:
 - **Accent Color** — cyan (default), red, orange, yellow, green, blue,
   indigo, violet — applied to focus highlights, page dots, and other accents
   throughout the launcher
+- **Theme** — KaiOS (default) or Material 2. Material 2 follows the device's
+  day/night mode; app icons retain their original colors, with keyboard focus
+  shown by a contrasting neutral-grey surface around the focused item.
 - **Icon Shape** — squircle, square, rounded square, or circle; adaptive
   icons are masked into the shape, legacy icons get an optional tinted
   background disc
@@ -156,4 +159,3 @@ the Notices screen and Home notification badges to work.
 No other runtime permissions are required. App enumeration uses a `<queries>`
 declaration rather than `QUERY_ALL_PACKAGES`.
 </details>
-

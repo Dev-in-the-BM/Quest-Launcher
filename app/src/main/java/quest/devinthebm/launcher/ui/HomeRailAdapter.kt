@@ -76,6 +76,11 @@ class HomeRailAdapter(
                 selectionHighlight.background = SquircleDrawable(
                     NotificationDotColor.forIcon(app.key, app.icon),
                 )
+                itemView.context.obtainStyledAttributes(intArrayOf(R.attr.launcherRailFocusBackground)).use { attrs ->
+                    if (attrs.getResourceId(0, 0) == R.drawable.m2_rail_focus) {
+                        selectionHighlight.setBackgroundResource(R.drawable.m2_rail_focus)
+                    }
+                }
                 if (hasNotification(app)) {
                     notifDot.visibility = View.VISIBLE
                     notifDot.backgroundTintList = ColorStateList.valueOf(NotificationDotColor.forIcon(app.key, app.icon))
@@ -83,13 +88,17 @@ class HomeRailAdapter(
                     notifDot.visibility = View.GONE
                 }
             } else {
-                circle.setBackgroundResource(R.drawable.bg_circle_add)
+                val themed = itemView.context.obtainStyledAttributes(intArrayOf(R.attr.launcherRailAddBackground, R.attr.launcherRailAddTint))
+                circle.background = themed.getDrawable(0)
                 icon.scaleType = ImageView.ScaleType.FIT_CENTER
                 icon.setImageResource(R.drawable.ic_add)
-                icon.setColorFilter(Color.WHITE)
+                icon.setColorFilter(themed.getColor(1, Color.WHITE))
+                themed.recycle()
                 // The add-shortcut control is not an app, so retain a neutral
                 // focus surface instead of inventing an app color for it.
-                selectionHighlight.setBackgroundResource(R.drawable.bg_rail_focus)
+                val attrs = itemView.context.obtainStyledAttributes(intArrayOf(R.attr.launcherRailFocusBackground))
+                selectionHighlight.setBackgroundResource(attrs.getResourceId(0, R.drawable.bg_rail_focus))
+                attrs.recycle()
                 notifDot.visibility = View.GONE
             }
             // A recycled row may have been the outgoing side of a wheel
