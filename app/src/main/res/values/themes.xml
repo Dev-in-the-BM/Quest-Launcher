@@ -2,6 +2,14 @@
 <resources>
     <!-- Base dark KaiOS-style theme used by settings/drawer screens. -->
     <style name="Theme.QuestLauncher" parent="Theme.AppCompat.NoActionBar">
+        <item name="launcherWindowSurface">@color/kai_bg</item>
+        <item name="launcherBarBackground">@color/kai_softkey_bg</item>
+        <item name="launcherPrimaryText">@color/text_on_item</item>
+        <item name="launcherPlainText">@color/kai_text</item>
+        <item name="launcherSecondaryText">@color/text_secondary_on_item</item>
+        <item name="launcherFocusFill">@color/kai_accent</item>
+        <item name="launcherFocusStroke">@color/kai_accent</item>
+        <item name="launcherRowBackground">@drawable/bg_item_focus</item>
         <item name="android:windowBackground">@color/kai_bg</item>
         <item name="android:colorBackground">@color/kai_bg</item>
         <item name="android:statusBarColor">@color/kai_softkey_bg</item>
@@ -9,6 +17,36 @@
         <item name="colorAccent">@color/kai_accent</item>
         <item name="android:textColorPrimary">@color/kai_text</item>
         <item name="android:textColorSecondary">@color/kai_text_secondary</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <style name="Theme.QuestLauncher.Material2" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/m2_primary</item>
+        <item name="colorPrimaryVariant">@color/m2_primary_variant</item>
+        <item name="colorSecondary">@color/m2_secondary</item>
+        <item name="colorSecondaryVariant">@color/m2_primary_variant</item>
+        <item name="colorAccent">@color/m2_action</item>
+        <item name="android:colorAccent">@color/m2_action</item>
+        <item name="colorSurface">@color/m2_surface</item>
+        <item name="colorOnSurface">@color/m2_on_surface</item>
+        <item name="android:colorBackground">@color/m2_background</item>
+        <item name="android:windowBackground">@color/m2_background</item>
+        <item name="android:statusBarColor">@color/m2_background</item>
+        <item name="android:navigationBarColor">@color/m2_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="launcherWindowSurface">@color/m2_background</item>
+        <item name="launcherBarBackground">@color/m2_background</item>
+        <item name="launcherPrimaryText">@color/m2_text_on_item</item>
+        <item name="launcherPlainText">@color/m2_on_surface</item>
+        <item name="launcherSecondaryText">@color/m2_secondary_text</item>
+        <item name="launcherFocusFill">@color/m2_settings_focus_fill</item>
+        <item name="launcherFocusStroke">@color/m2_focus_outline</item>
+        <item name="launcherRowBackground">@drawable/m2_row_focus</item>
+        <item name="android:textColorPrimary">@color/m2_on_surface</item>
+        <item name="android:textColorSecondary">@color/m2_secondary_text</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 

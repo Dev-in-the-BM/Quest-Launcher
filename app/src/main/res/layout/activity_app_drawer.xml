@@ -13,7 +13,7 @@
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
         android:text="@string/title_all_apps"
-        android:textColor="@color/kai_text"
+        android:textColor="?attr/launcherPrimaryText"
         android:textSize="@dimen/screen_title"
         android:textStyle="bold" />
 

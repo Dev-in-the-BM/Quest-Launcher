@@ -22,7 +22,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import quest.devinthebm.launcher.theme.ThemedActivity
 import androidx.core.view.doOnLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -49,7 +49,7 @@ import java.util.Locale
  * Tap an icon (or press its number key, or D-pad to it and press OK) to launch.
  * The center dots open All Apps; long-pressing them opens launcher Options.
  */
-class MainActivity : AppCompatActivity() {
+class MainActivity : ThemedActivity() {
 
     private lateinit var prefs: LauncherPrefs
     private lateinit var rail: RecyclerView
@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         prefs = LauncherPrefs(this)
         val accent = prefs.getAccentColor()
         appliedAccentColor = accent
-        if (accent.themeOverlayRes != 0) theme.applyStyle(accent.themeOverlayRes, true)
+        if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS && accent.themeOverlayRes != 0) theme.applyStyle(accent.themeOverlayRes, true)
         setContentView(R.layout.activity_main)
 
         clock = findViewById(R.id.clock)

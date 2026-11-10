@@ -5,7 +5,7 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import quest.devinthebm.launcher.theme.ThemedActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import quest.devinthebm.launcher.data.BuiltInIcons
@@ -19,7 +19,7 @@ import com.theonionsarewatching.yapchik.Softkeys
  * pack, or from the launcher's own bundled icon set (always available, even
  * with no icon pack installed).
  */
-class IconPickerActivity : AppCompatActivity() {
+class IconPickerActivity : ThemedActivity() {
 
     private lateinit var prefs: LauncherPrefs
     private lateinit var appKey: String

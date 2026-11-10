@@ -10,6 +10,8 @@ import quest.devinthebm.launcher.data.IconPackRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
 import quest.devinthebm.launcher.ui.ListRowAdapter
 import quest.devinthebm.launcher.ui.Row
+import quest.devinthebm.launcher.theme.LauncherThemeCatalog
+import quest.devinthebm.launcher.theme.LauncherThemeStore
 
 class LauncherSettingsActivity : BaseListActivity() {
 
@@ -33,6 +35,7 @@ class LauncherSettingsActivity : BaseListActivity() {
     private var accentColorRow = -1
     private var iconShapeRow = -1
     private var iconBackgroundRow = -1
+    private var themeRow = -1
 
     private val pickRightKeyApp = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -93,6 +96,7 @@ class LauncherSettingsActivity : BaseListActivity() {
                 refreshRows()
             },
             Setting(getString(R.string.settings_accent_color)) { chooseAccentColor() },
+            Setting(getString(R.string.settings_theme)) { chooseTheme() },
             Setting(getString(R.string.settings_icon_shape)) { chooseIconShape() },
             Setting(getString(R.string.settings_icon_background)) {
                 prefs.setLegacyIconBackgroundEnabled(!prefs.isLegacyIconBackgroundEnabled())
@@ -111,6 +115,7 @@ class LauncherSettingsActivity : BaseListActivity() {
         notifOtherRow = settings.indexOfFirst { it.title == getString(R.string.settings_notif_other) }
         notifIconDotsRow = settings.indexOfFirst { it.title == getString(R.string.settings_notif_icon_dots) }
         accentColorRow = settings.indexOfFirst { it.title == getString(R.string.settings_accent_color) }
+        themeRow = settings.indexOfFirst { it.title == getString(R.string.settings_theme) }
         iconShapeRow = settings.indexOfFirst { it.title == getString(R.string.settings_icon_shape) }
         iconBackgroundRow = settings.indexOfFirst { it.title == getString(R.string.settings_icon_background) }
 
@@ -179,6 +184,7 @@ class LauncherSettingsActivity : BaseListActivity() {
                 notifOtherRow -> onOff(prefs.isOtherBadgeEnabled())
                 notifIconDotsRow -> onOff(prefs.isIconNotificationDotEnabled())
                 accentColorRow -> getString(prefs.getAccentColor().labelRes)
+                themeRow -> getString(LauncherThemeCatalog.resolve(LauncherThemeStore(prefs).read()).displayNameRes)
                 iconShapeRow -> getString(prefs.getIconShape().labelRes)
                 iconBackgroundRow -> onOff(prefs.isLegacyIconBackgroundEnabled())
                 else -> null
@@ -247,6 +253,22 @@ class LauncherSettingsActivity : BaseListActivity() {
                 dialog.dismiss()
                 recreate()
             }
+            .show()
+    }
+
+    private fun chooseTheme() {
+        val themes = LauncherThemeCatalog.descriptors
+        val labels = themes.map { getString(it.displayNameRes) }.toTypedArray()
+        val selected = LauncherThemeCatalog.resolve(LauncherThemeStore(prefs).read())
+        val checked = themes.indexOfFirst { it.id == selected.id }.coerceAtLeast(0)
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.settings_theme)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                LauncherThemeStore(prefs).write(themes[which].id)
+                dialog.dismiss()
+                recreate()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 

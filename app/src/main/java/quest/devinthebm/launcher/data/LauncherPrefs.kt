@@ -185,6 +185,13 @@ class LauncherPrefs(context: Context) {
         prefs.edit().putString(KEY_ACCENT_COLOR, color.key).apply()
     }
 
+    fun getThemeId(): String? = prefs.getString(KEY_THEME_ID, null)
+
+    /** Synchronous by design: callers recreate only after durable selection succeeds. */
+    fun setThemeId(id: String) {
+        check(prefs.edit().putString(KEY_THEME_ID, id).commit()) { "Could not persist launcher theme selection" }
+    }
+
     // --------------------------------------------------------- Icon wrapping
 
     /** The shape every wrapped icon is masked into, launcher-wide. */
@@ -266,6 +273,7 @@ class LauncherPrefs(context: Context) {
         private const val KEY_DRAWER_KEYPAD_ACTION = "drawer_keypad_action"
         private const val KEY_ICON_OVERRIDE_PREFIX = "icon_override_"
         private const val KEY_ACCENT_COLOR = "accent_color"
+        private const val KEY_THEME_ID = "launcher_theme_id"
         private const val ICON_OVERRIDE_SEPARATOR = "::"
         private const val KEY_ICON_SHAPE = "icon_shape"
         private const val KEY_LEGACY_ICON_BG = "legacy_icon_background"

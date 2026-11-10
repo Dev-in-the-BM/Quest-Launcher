@@ -1,0 +1,10 @@
+<resources>
+    <attr name="launcherWindowSurface" format="color" />
+    <attr name="launcherBarBackground" format="color" />
+    <attr name="launcherPrimaryText" format="color" />
+    <attr name="launcherPlainText" format="color" />
+    <attr name="launcherSecondaryText" format="color" />
+    <attr name="launcherFocusFill" format="color" />
+    <attr name="launcherFocusStroke" format="color" />
+    <attr name="launcherRowBackground" format="reference" />
+</resources>

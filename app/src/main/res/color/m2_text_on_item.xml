@@ -1,0 +1,7 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:color="#61191C1D" />
+    <item android:state_selected="true" android:color="@color/m2_primary_variant" />
+    <item android:state_focused="true" android:color="@color/m2_on_surface" />
+    <item android:state_pressed="true" android:color="@color/m2_on_surface" />
+    <item android:color="@color/m2_on_surface" />
+</selector>

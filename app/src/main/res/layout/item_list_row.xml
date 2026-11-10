@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="6dp"
     android:layout_marginVertical="2dp"
-    android:background="@drawable/bg_item_focus"
+    android:background="?attr/launcherRowBackground"
     android:clickable="true"
     android:focusable="true">
 
@@ -48,7 +48,7 @@
             android:duplicateParentState="true"
             android:ellipsize="end"
             android:singleLine="true"
-            android:textColor="@color/text_on_item"
+            android:textColor="?attr/launcherPrimaryText"
             android:textSize="16sp" />
 
         <TextView
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:duplicateParentState="true"
-            android:textColor="@color/text_secondary_on_item"
+            android:textColor="?attr/launcherSecondaryText"
             android:textSize="13sp" />
     </LinearLayout>
 

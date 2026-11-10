@@ -2,7 +2,7 @@ package quest.devinthebm.launcher
 
 import android.os.Bundle
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import quest.devinthebm.launcher.theme.ThemedActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.theonionsarewatching.yapchik.SoftkeyController
@@ -14,7 +14,7 @@ import quest.devinthebm.launcher.data.LauncherPrefs
  * Shortcuts, App Picker): a title bar, a focusable [RecyclerView] and the bottom
  * Yapchik softkeys. Subclasses populate the adapter and wire up the soft keys.
  */
-abstract class BaseListActivity : AppCompatActivity() {
+abstract class BaseListActivity : ThemedActivity() {
 
     protected lateinit var titleView: TextView
     protected lateinit var listView: RecyclerView
@@ -27,7 +27,9 @@ abstract class BaseListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val accent = LauncherPrefs(this).getAccentColor()
         appliedAccentColor = accent
-        if (accent.themeOverlayRes != 0) theme.applyStyle(accent.themeOverlayRes, true)
+        if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS && accent.themeOverlayRes != 0) {
+            theme.applyStyle(accent.themeOverlayRes, true)
+        }
         setContentView(R.layout.activity_list)
         titleView = findViewById(R.id.title)
         listView = findViewById(R.id.list)

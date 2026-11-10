@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Shared layout for the Options / Hide Apps / Shortcuts / App Picker screens. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
+    android:background="?attr/launcherWindowSurface"
     android:orientation="vertical">
 
     <TextView
         android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/kai_softkey_bg"
+        android:background="?attr/launcherBarBackground"
         android:gravity="center"
         android:paddingTop="10dp"
         android:paddingBottom="10dp"

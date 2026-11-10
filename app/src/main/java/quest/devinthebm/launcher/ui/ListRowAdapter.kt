@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import quest.devinthebm.launcher.R
 
@@ -88,11 +87,10 @@ class ListRowAdapter(
                 notifDot.visibility = View.GONE
             }
             title.text = row.title
-            if (row.keepWhiteTitle) {
-                title.setTextColor(ContextCompat.getColor(itemView.context, R.color.kai_text))
-            } else {
-                title.setTextColor(ContextCompat.getColorStateList(itemView.context, R.color.text_on_item))
-            }
+            val titleAttr = if (row.keepWhiteTitle) R.attr.launcherPlainText else R.attr.launcherPrimaryText
+            val titleColors = itemView.context.obtainStyledAttributes(intArrayOf(titleAttr))
+                .let { attrs -> attrs.getColorStateList(0).also { attrs.recycle() } }
+            titleColors?.let(title::setTextColor)
             trailing.text = row.trailing ?: ""
             trailing.visibility = if (row.trailing.isNullOrEmpty()) View.GONE else View.VISIBLE
 

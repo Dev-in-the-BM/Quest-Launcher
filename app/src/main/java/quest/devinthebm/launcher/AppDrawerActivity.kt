@@ -13,7 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import quest.devinthebm.launcher.theme.ThemedActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,7 +47,7 @@ import kotlin.math.min
  * Center/OK opens the focused app. The Options soft key (or long-press) lets
  * the user pin an app to Home, hide it, or uninstall it.
  */
-class AppDrawerActivity : AppCompatActivity() {
+class AppDrawerActivity : ThemedActivity() {
 
     private lateinit var prefs: LauncherPrefs
     private lateinit var grid: RecyclerView
@@ -80,7 +80,7 @@ class AppDrawerActivity : AppCompatActivity() {
         prefs = LauncherPrefs(this)
         val accent = prefs.getAccentColor()
         appliedAccentColor = accent
-        if (accent.themeOverlayRes != 0) theme.applyStyle(accent.themeOverlayRes, true)
+        if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS && accent.themeOverlayRes != 0) theme.applyStyle(accent.themeOverlayRes, true)
         setContentView(R.layout.activity_app_drawer)
 
         grid = findViewById(R.id.apps_grid)
