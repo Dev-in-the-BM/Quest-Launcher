@@ -89,6 +89,7 @@ class AppDrawerActivity : ThemedActivity() {
     private var stableGridHeight = 0
     private var pendingGridFocusPosition = RecyclerView.NO_POSITION
     private var t9Overlay: TextView? = null
+    private var t9BackgroundAnimator: android.animation.ValueAnimator? = null
     private var lastT9Key = KeyEvent.KEYCODE_UNKNOWN
     private var t9LetterIndex = 0
     private var lastT9PressAt = 0L
@@ -565,6 +566,8 @@ class AppDrawerActivity : ThemedActivity() {
         val host = findViewById<FrameLayout>(R.id.drawer_content) ?: return
         t9Overlay?.let { old ->
             old.animate().cancel()
+            t9BackgroundAnimator?.cancel()
+            t9BackgroundAnimator = null
             (old.parent as? ViewGroup)?.removeView(old)
         }
         val isKai = launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS
@@ -592,6 +595,9 @@ class AppDrawerActivity : ThemedActivity() {
             isFocusable = false
             isSelected = true
         }
+        val badgeBackground = badge.background?.mutate()
+        badge.background = badgeBackground
+        badgeBackground?.alpha = 190
         val density = resources.displayMetrics.density
         val size = (64 * density).toInt()
         val appContent = findViewById<ViewGroup>(android.R.id.content)
@@ -613,15 +619,21 @@ class AppDrawerActivity : ThemedActivity() {
             },
         )
         t9Overlay = badge
-        badge.alpha = 0f
-        badge.animate().alpha(1f).setDuration(100).withEndAction {
+        badge.postDelayed({
+            val fadeOut = android.animation.ValueAnimator.ofInt(badgeBackground?.alpha ?: 190, 0).apply {
+                duration = 120
+                addUpdateListener { animation ->
+                    badgeBackground?.alpha = animation.animatedValue as Int
+                }
+            }
+            t9BackgroundAnimator = fadeOut
+            fadeOut.start()
             badge.postDelayed({
-                badge.animate().alpha(0f).setDuration(220).withEndAction {
-                    host.removeView(badge)
-                    if (t9Overlay === badge) t9Overlay = null
-                }.start()
-            }, 2_200)
-        }.start()
+                if (t9BackgroundAnimator === fadeOut) t9BackgroundAnimator = null
+                host.removeView(badge)
+                if (t9Overlay === badge) t9Overlay = null
+            }, 120)
+        }, 900)
     }
 
     private fun handleT9Jump(keyCode: Int, eventTime: Long): Boolean {
