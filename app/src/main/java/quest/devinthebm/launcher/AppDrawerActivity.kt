@@ -88,6 +88,7 @@ class AppDrawerActivity : ThemedActivity() {
     // measured for this activity configuration.
     private var stableGridHeight = 0
     private var pendingGridFocusPosition = RecyclerView.NO_POSITION
+    private var t9Overlay: TextView? = null
     private var lastT9Key = KeyEvent.KEYCODE_UNKNOWN
     private var t9LetterIndex = 0
     private var lastT9PressAt = 0L
@@ -127,7 +128,7 @@ class AppDrawerActivity : ThemedActivity() {
         gridFocusHighlight = findViewById<View>(R.id.grid_focus_highlight).apply {
             background = when (launcherTheme.components) {
                 quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS -> gridFocusDrawable
-                quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2 -> getDrawable(R.drawable.m2_grid_focus)
+                quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2 -> getDrawable(R.drawable.m2_grid_focus_inset)
                 quest.devinthebm.launcher.theme.LauncherComponentSelection.Aeris -> getDrawable(R.drawable.aeris_grid_focus)
             }
             isSelected = true
@@ -422,14 +423,18 @@ class AppDrawerActivity : ThemedActivity() {
             val parentLocation = IntArray(2)
             iconFrame.getLocationInWindow(iconLocation)
             parent.getLocationInWindow(parentLocation)
-            val left = iconLocation[0] - parentLocation[0]
-            val top = iconLocation[1] - parentLocation[1]
+            // Let the Material focus tile extend past the icon frame, leaving
+            // comfortable breathing room around the app icon rather than
+            // clipping tightly to the frame's own padding.
+            val inset = if (launcherTheme.components != quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) (-4 * resources.displayMetrics.density).toInt() else 0
+            val left = iconLocation[0] - parentLocation[0] + inset
+            val top = iconLocation[1] - parentLocation[1] + inset
             if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) {
                 gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
             }
             val params = gridFocusHighlight.layoutParams as FrameLayout.LayoutParams
-            val highlightWidth = (iconFrame.width * iconFrame.scaleX).toInt()
-            val highlightHeight = (iconFrame.height * iconFrame.scaleY).toInt()
+            val highlightWidth = ((iconFrame.width - inset * 2) * iconFrame.scaleX).toInt()
+            val highlightHeight = ((iconFrame.height - inset * 2) * iconFrame.scaleY).toInt()
             val sizeChanged = params.width != highlightWidth || params.height != highlightHeight
             params.width = highlightWidth
             params.height = highlightHeight
@@ -547,12 +552,76 @@ class AppDrawerActivity : ThemedActivity() {
     /** Focus the first alphabetically sorted visible app whose label begins with [letter]. */
     private fun jumpToAppInitial(letter: Char) {
         val index = allApps.indexOfFirst { it.label.startsWith(letter.toString(), ignoreCase = true) }
+        showT9Letter(letter)
         if (index < 0) return
         if (listMode) {
             bindList(index)
         } else {
             bindPage(index / pageSize, index % pageSize)
         }
+    }
+
+    private fun showT9Letter(letter: Char) {
+        val host = findViewById<FrameLayout>(R.id.drawer_content) ?: return
+        t9Overlay?.let { old ->
+            old.animate().cancel()
+            (old.parent as? ViewGroup)?.removeView(old)
+        }
+        val isKai = launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS
+        val badge = TextView(this).apply {
+            text = letter.uppercaseChar().toString()
+            textSize = 34f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            gravity = android.view.Gravity.CENTER
+            val textAttr = if (isKai) R.attr.launcherOnAccentText else R.attr.launcherPlainText
+            val attributes = context.obtainStyledAttributes(intArrayOf(textAttr))
+            try {
+                setTextColor(attributes.getColor(0, android.graphics.Color.WHITE))
+            } finally {
+                attributes.recycle()
+            }
+            background = androidx.core.content.ContextCompat.getDrawable(
+                this@AppDrawerActivity,
+                when (launcherTheme.components) {
+                    quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS -> R.drawable.bg_item_focus
+                    quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2 -> R.drawable.m2_grid_focus
+                    quest.devinthebm.launcher.theme.LauncherComponentSelection.Aeris -> R.drawable.aeris_grid_focus
+                },
+            )
+            elevation = 12 * resources.displayMetrics.density
+            isFocusable = false
+            isSelected = true
+        }
+        val density = resources.displayMetrics.density
+        val size = (64 * density).toInt()
+        val appContent = findViewById<ViewGroup>(android.R.id.content)
+        val softkeyBar = (0 until appContent.childCount)
+            .map { appContent.getChildAt(it) }
+            .filterIsInstance<SoftkeyBar>()
+            .firstOrNull()
+        val hostPosition = IntArray(2)
+        host.getLocationInWindow(hostPosition)
+        val barPosition = IntArray(2)
+        softkeyBar?.getLocationInWindow(barPosition)
+        val overlapWithSoftkey = if (softkeyBar != null && softkeyBar.height > 0) {
+            (hostPosition[1] + host.height - barPosition[1]).coerceAtLeast(0)
+        } else 0
+        host.addView(
+            badge,
+            FrameLayout.LayoutParams(size, size, android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL).apply {
+                bottomMargin = overlapWithSoftkey + (18 * density).toInt()
+            },
+        )
+        t9Overlay = badge
+        badge.alpha = 0f
+        badge.animate().alpha(1f).setDuration(100).withEndAction {
+            badge.postDelayed({
+                badge.animate().alpha(0f).setDuration(220).withEndAction {
+                    host.removeView(badge)
+                    if (t9Overlay === badge) t9Overlay = null
+                }.start()
+            }, 2_200)
+        }.start()
     }
 
     private fun handleT9Jump(keyCode: Int, eventTime: Long): Boolean {
@@ -588,14 +657,10 @@ class AppDrawerActivity : ThemedActivity() {
 
     private fun showContextMenu(app: AppInfo) {
         val items = mutableListOf(
-            ContextItem(getString(R.string.ctx_open)) { launchAppByKey(app.key) },
             ContextItem(getString(R.string.ctx_add_home)) { addToHome(app) },
             ContextItem(getString(R.string.ctx_hide)) { hideApp(app) },
-            ContextItem(getString(R.string.ctx_change_icon)) { changeIcon(app) },
+            ContextItem(getString(R.string.ctx_app_info)) { showAppInfo(app) },
         )
-        if (prefs.getIconOverride(app.key) != null) {
-            items.add(ContextItem(getString(R.string.ctx_reset_icon)) { resetIcon(app) })
-        }
         val wrapEnabled = prefs.isIconWrapEnabled(app.key)
         items.add(
             ContextItem(getString(if (wrapEnabled) R.string.ctx_disable_wrap else R.string.ctx_enable_wrap)) {
@@ -604,14 +669,22 @@ class AppDrawerActivity : ThemedActivity() {
         )
         items.add(ContextItem(getString(R.string.ctx_uninstall)) { uninstallApp(app) })
 
-        val titleView = layoutInflater.inflate(R.layout.dialog_app_context_title, null).apply {
-            findViewById<TextView>(R.id.dialog_title_label).text = app.label
-            findViewById<TextView>(R.id.dialog_title_package).text = app.packageName
-        }
-        AlertDialog.Builder(this)
-            .setCustomTitle(titleView)
-            .setItems(items.map { it.label }.toTypedArray()) { _, which -> items[which].action() }
-            .show()
+        val content = findViewById<ViewGroup>(android.R.id.content)
+        val bar = (0 until content.childCount).map { content.getChildAt(it) }.filterIsInstance<SoftkeyBar>().firstOrNull()
+        val row = bar?.getChildAt(1) as? ViewGroup
+        val anchor = row?.getChildAt(0) ?: grid
+        val popupContext = if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) {
+            androidx.appcompat.view.ContextThemeWrapper(this, R.style.Theme_QuestLauncher)
+        } else this
+        val popup = PopupMenu(popupContext, anchor, android.view.Gravity.TOP or android.view.Gravity.START)
+        items.forEachIndexed { index, item -> popup.menu.add(0, index, index, item.label) }
+        popup.setOnMenuItemClickListener { item -> items[item.itemId].action(); true }
+        popup.show()
+    }
+
+    private fun showAppInfo(app: AppInfo) {
+        val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", app.packageName, null))
+        try { startActivity(intent) } catch (_: Exception) { Toast.makeText(this, "App info unavailable", Toast.LENGTH_SHORT).show() }
     }
 
     private fun changeIcon(app: AppInfo) {

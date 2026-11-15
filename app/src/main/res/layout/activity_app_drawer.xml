@@ -17,17 +17,8 @@
         android:textSize="?attr/launcherScreenTitleSize"
         android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/app_search"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:hint="Search apps"
-        android:imeOptions="actionDone"
-        android:singleLine="true"
-        android:visibility="gone" />
-
     <FrameLayout
+        android:id="@+id/drawer_content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -60,6 +51,18 @@
             android:layout_height="match_parent"
             android:layout_gravity="end|center_vertical"
             android:paddingEnd="10dp" />
+
+        <EditText
+            android:id="@+id/app_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:layout_marginHorizontal="12dp"
+            android:hint="Search apps"
+            android:imeOptions="actionDone"
+            android:singleLine="true"
+            android:elevation="8dp"
+            android:visibility="gone" />
 
     </FrameLayout>
 

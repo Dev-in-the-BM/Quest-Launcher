@@ -27,6 +27,8 @@
         <item name="android:textColorPrimary">@color/kai_text</item>
         <item name="android:textColorSecondary">@color/kai_text_secondary</item>
         <item name="android:windowAnimationStyle">@null</item>
+        <item name="popupMenuStyle">@style/Widget.QuestLauncher.KaiOS.PopupMenu</item>
+        <item name="dropDownListViewStyle">@style/Widget.QuestLauncher.KaiOS.PopupList</item>
     </style>
 
     <style name="Theme.QuestLauncher.Material2" parent="Theme.MaterialComponents.DayNight.NoActionBar">
@@ -65,6 +67,7 @@
         <item name="launcherRowTrailingSize">14sp</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.QuestLauncher.Material2.AlertDialog</item>
         <item name="popupMenuStyle">@style/Widget.QuestLauncher.Material2.PopupMenu</item>
+        <item name="dropDownListViewStyle">@style/Widget.QuestLauncher.Material2.PopupList</item>
         <item name="android:windowShowWallpaper">false</item>
         <item name="android:textColorPrimary">@color/m2_on_surface</item>
         <item name="android:textColorSecondary">@color/m2_secondary_text</item>
@@ -143,6 +146,22 @@
 
     <style name="Widget.QuestLauncher.Material2.PopupMenu" parent="Widget.MaterialComponents.PopupMenu">
         <item name="android:popupBackground">@drawable/m2_popup_background</item>
+    </style>
+
+    <style name="Widget.QuestLauncher.Material2.PopupList" parent="Widget.AppCompat.ListView.DropDown">
+        <item name="android:listSelector">@drawable/m2_popup_focus_inset</item>
+        <item name="android:divider">@android:color/transparent</item>
+        <item name="android:dividerHeight">0dp</item>
+    </style>
+
+    <style name="Widget.QuestLauncher.KaiOS.PopupMenu" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/kai_popup_background</item>
+    </style>
+
+    <style name="Widget.QuestLauncher.KaiOS.PopupList" parent="Widget.AppCompat.ListView.DropDown">
+        <item name="android:listSelector">@drawable/kai_popup_focus</item>
+        <item name="android:divider">@android:color/transparent</item>
+        <item name="android:dividerHeight">0dp</item>
     </style>
 
     <!-- Home screen: show the user's wallpaper behind the clock & shortcuts.

@@ -38,7 +38,7 @@ the three-soft-key layout (left / center / right) KaiOS users already know.
 ### App Drawer ("All Apps")
 
 - Every installed, non-hidden app, in **grid** or **list** view (toggle in
-  Launcher Settings):
+  Options → App Drawer):
   - **Grid**: a 3x3 icon page at a time, tracked by a column of dots on the right.
     Number keys 1-9 launch the matching icon on the current page.
     Icon sizing and page boundaries remain stable while search or transient
@@ -67,7 +67,7 @@ timestamp ("2 minutes ago", "8:30 AM", …) per notification.
 - **Select** (center) — open the notice's action, then dismiss it
 - **Dismiss All** (right) — clear every active notification
 
-Requires Notification Access, granted from Launcher Settings.
+Requires Notification Access, granted from Options → Notifications.
 
 ![Notices](docs/notices.png)
 
@@ -77,36 +77,30 @@ Reached from Home's center soft key (long-press) or the App Drawer's Options
 key:
 
 - All Apps
-- Launcher Settings
+- Home & Navigation
+- App Drawer
+- Appearance
+- Notifications
 - Customize Home Shortcuts
 - Hide / Show Apps
-- Back Button (Long-Press) — assign an app to launch on long-press
 - Set Wallpaper
 - Set as Default Launcher
-- System Settings
 
-### Launcher Settings
+### Settings submenus
 
-- **App Icon Size** — small / medium / large
-- **Home Right Key** — assign an app, or leave it as Contacts
-- **Icon Pack** — apply any installed icon pack (Nova/ADW/Apex-compatible)
-  launcher-wide
-- **App Drawer View** — Grid or List
-- **Notification Access** — grants/checks the permission that powers Notices
-  and the Home badges
-- **Show Missed Calls / Messages / Other Notifications** — independent
-  toggles for the Home badge summary
-- **Accent Color** — cyan (default), red, orange, yellow, green, blue,
-  indigo, violet — applied to focus highlights, page dots, and other accents
-  throughout the launcher
-- **Theme** — KaiOS (default) or Material 2. Material 2 follows the device's
-  day/night mode; app icons retain their original colors, with keyboard focus
-  shown by a contrasting neutral-grey surface around the focused item.
-- **Icon Shape** — squircle, square, rounded square, or circle; adaptive
-  icons are masked into the shape, legacy icons get an optional tinted
-  background disc
-- **Background for Plain Icons** — toggle the synthesized tint disc for
-  non-adaptive icons
+- **Home & Navigation** — customize the Home left and right keys and choose an
+  app for Back-button long-press.
+- **App Drawer** — choose icon size, Grid or List layout, and keypad behavior
+  (Search, T9 App Jump, or Grid Position).
+- **Appearance** — choose an installed icon pack, accent color (cyan, red,
+  orange, yellow, green, blue, indigo, violet), and theme (KaiOS, Material 2,
+  or Aeris).
+  Configure icon shape (squircle, square, circle, rounded square, or none) and
+  the background for plain icons here too. Material 2 follows the device's
+  day/night mode.
+- **Notifications** — grant/check Notification Access, toggle missed-call,
+  message, and other-notification badges, and control notification dots on
+  app icons.
 
 ![Settings](docs/iconpack.png)
 ![Icon Shape](docs/iconshape.png)
@@ -129,7 +123,7 @@ the focused app is hidden from Home and the App Drawer.
 
 ### Icon packs & built-in icons
 
-- Apply any installed icon-pack app launcher-wide from Launcher Settings.
+- Apply any installed icon-pack app launcher-wide from Options → Appearance.
 - Override a single app's icon independently of the active pack, choosing
   from that pack's full icon set or from the launcher's own bundled icon
   collection — so there's always something to pick from even with no icon
@@ -155,8 +149,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 Then set Quest Launcher as your default Home app (Options → Set as Default
-Launcher), and grant Notification Access from Launcher Settings if you want
-the Notices screen and Home notification badges to work.
+Launcher), and grant Notification Access from Options → Notifications if you
+want the Notices screen and Home notification badges to work.
 
 ## Permissions
 

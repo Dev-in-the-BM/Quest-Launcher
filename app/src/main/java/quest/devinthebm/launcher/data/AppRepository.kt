@@ -13,8 +13,6 @@ import android.graphics.drawable.Drawable
  */
 object AppRepository {
 
-    private const val SETTINGS_ACTIVITY = "quest.devinthebm.launcher.LauncherSettingsActivity"
-
     /** Every launchable app except this launcher itself, sorted by label. */
     @Suppress("DEPRECATION") // int-flags overload kept for minSdk 21 compatibility
     fun getAllApps(context: Context): List<AppInfo> {
@@ -25,10 +23,7 @@ object AppRepository {
             .asSequence()
             .mapNotNull { ri ->
                 val ai = ri.activityInfo ?: return@mapNotNull null
-                // Exclude our own activities except Launcher Settings, which is
-                // deliberately exported with a LAUNCHER category so it shows up
-                // here like a regular app.
-                if (ai.packageName == self && ai.name != SETTINGS_ACTIVITY) return@mapNotNull null
+                if (ai.packageName == self) return@mapNotNull null
                 val key = ComponentName(ai.packageName, ai.name).flattenToString()
                 AppInfo(
                     label = ri.loadLabel(pm).toString(),

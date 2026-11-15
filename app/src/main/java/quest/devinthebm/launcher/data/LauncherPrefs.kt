@@ -73,14 +73,31 @@ class LauncherPrefs(context: Context) {
 
     // ------------------------------------------------------------- Favorites
 
-    /** Ordered app keys shown in the fixed 3x3 favorites grid. */
-    fun getFavoriteKeys(): MutableList<String> {
+    /** App keys by physical grid position; empty positions are retained. */
+    fun getFavoriteSlots(): MutableList<String?> {
         val raw = prefs.getString(KEY_FAVORITES, "").orEmpty()
-        return raw.split('\n').filter { it.isNotEmpty() }.take(MAX_FAVORITES).toMutableList()
+        val stored = if (raw.isEmpty()) emptyList() else raw.split('\n', limit = MAX_FAVORITES)
+        val slots = MutableList<String?>(MAX_FAVORITES) { null }
+        val seen = HashSet<String>()
+        stored.take(MAX_FAVORITES).forEachIndexed { index, key ->
+            if (key.isNotEmpty() && seen.add(key)) slots[index] = key
+        }
+        return slots
     }
 
+    fun setFavoriteSlots(keys: List<String?>) {
+        val seen = HashSet<String>()
+        val slots = List(MAX_FAVORITES) { index ->
+            keys.getOrNull(index)?.takeIf { it.isNotEmpty() && seen.add(it) }.orEmpty()
+        }
+        prefs.edit().putString(KEY_FAVORITES, slots.joinToString("\n")).apply()
+    }
+
+    /** Compact favorites view for callers that treat the grid as a simple list. */
+    fun getFavoriteKeys(): MutableList<String> = getFavoriteSlots().filterNotNull().toMutableList()
+
     fun setFavoriteKeys(keys: List<String>) {
-        prefs.edit().putString(KEY_FAVORITES, keys.distinct().take(MAX_FAVORITES).joinToString("\n")).apply()
+        setFavoriteSlots(keys.distinct().take(MAX_FAVORITES))
     }
 
     enum class HomeKey(val key: String, val labelRes: Int) {

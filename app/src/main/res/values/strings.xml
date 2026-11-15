@@ -42,7 +42,11 @@
     <!-- Screen titles -->
     <string name="title_all_apps">All Apps</string>
     <string name="favorites_add">Add favorite app</string>
+    <string name="favorites_edit">Edit favorites</string>
+    <string name="favorites_done">Done</string>
+    <string name="favorites_change_app">Choose app</string>
     <string name="favorites_remove">Remove from favorites</string>
+    <string name="favorites_slot_description">Key %1$d: %2$s</string>
     <string name="title_options">Options</string>
     <string name="title_hide_apps">Hide / Show Apps</string>
     <string name="title_shortcuts">Home Shortcuts</string>

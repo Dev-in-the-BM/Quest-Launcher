@@ -22,4 +22,13 @@
         android:text="+"
         android:textColor="?attr/launcherSecondaryText"
         android:textSize="36sp" />
+
+    <TextView
+        android:id="@+id/key_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:padding="8dp"
+        android:textColor="?attr/launcherPrimaryText"
+        android:textSize="14sp" />
 </FrameLayout>
