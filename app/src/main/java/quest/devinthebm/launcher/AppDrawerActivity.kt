@@ -6,14 +6,18 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.PopupMenu
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
 import quest.devinthebm.launcher.theme.ThemedActivity
+import quest.devinthebm.launcher.theme.ThemeDescriptor
+import quest.devinthebm.launcher.theme.LauncherComponentSelection
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,6 +32,8 @@ import quest.devinthebm.launcher.ui.ListRowAdapter
 import quest.devinthebm.launcher.ui.PageIndicatorView
 import quest.devinthebm.launcher.ui.Row
 import com.theonionsarewatching.yapchik.Softkeys
+import com.theonionsarewatching.yapchik.SoftkeyBar
+import com.theonionsarewatching.yapchik.Yapchik
 import quest.devinthebm.launcher.ui.SquircleDrawable
 import quest.devinthebm.launcher.util.launchAppByKey
 import kotlin.math.ceil
@@ -48,6 +54,12 @@ import kotlin.math.min
  * the user pin an app to Home, hide it, or uninstall it.
  */
 class AppDrawerActivity : ThemedActivity() {
+
+    override fun activityThemeStyle(descriptor: ThemeDescriptor): Int =
+        when (descriptor.components) {
+            LauncherComponentSelection.KaiOS -> R.style.Theme_QuestLauncher_Drawer
+            LauncherComponentSelection.Material2 -> R.style.Theme_QuestLauncher_Drawer_Material2
+        }
 
     private lateinit var prefs: LauncherPrefs
     private lateinit var grid: RecyclerView
@@ -160,9 +172,8 @@ class AppDrawerActivity : ThemedActivity() {
             if (oldPageSize != pageSize) refresh()
         }
 
-        Softkeys.of(this).set {
-            left("Search") { toggleSearch(showKeyboard = true) }
-            right(getString(R.string.softkey_options)) { optionsForFocused() }
+        setDrawerSoftkeys(searchAction = "Search") {
+            toggleSearch(showKeyboard = true)
         }
     }
 
@@ -235,7 +246,7 @@ class AppDrawerActivity : ThemedActivity() {
         searchVisible = !searchVisible
         searchField.visibility = if (searchVisible) View.VISIBLE else View.GONE
         if (searchVisible) {
-            Softkeys.of(this).set { left("Close search") { toggleSearch() }; right(getString(R.string.softkey_options)) { optionsForFocused() } }
+            setDrawerSoftkeys(searchAction = "Close search") { toggleSearch() }
             if (initialQuery != null) searchField.setText(initialQuery)
             searchField.showSoftInputOnFocus = showKeyboard
             searchField.requestFocus()
@@ -247,9 +258,43 @@ class AppDrawerActivity : ThemedActivity() {
             searchField.showSoftInputOnFocus = true
             searchQuery = ""
             searchField.setText("")
-            Softkeys.of(this).set { left("Search") { toggleSearch() }; right(getString(R.string.softkey_options)) { optionsForFocused() } }
+            setDrawerSoftkeys(searchAction = "Search") { toggleSearch() }
             grid.requestFocus()
             applySearch()
+        }
+    }
+
+    private fun setDrawerSoftkeys(searchAction: String, onSearch: () -> Unit) {
+        // Wallpaper varies more than the regular theme surface. Use a single
+        // high-contrast foreground for both drawer actions.
+        Yapchik.style.textColor = Color.WHITE
+        Softkeys.of(this).set {
+            left(getString(R.string.softkey_options)) { optionsForFocused() }
+            right(label = searchAction) { onSearch() }
+        }
+        val content = findViewById<ViewGroup>(android.R.id.content)
+        val bar = (0 until content.childCount)
+            .map { content.getChildAt(it) }
+            .filterIsInstance<SoftkeyBar>()
+            .firstOrNull() ?: return
+
+        // Keep the wallpaper visible through Yapchik. Its labels stay white
+        // with a restrained dark shadow so they remain legible on bright images.
+        bar.setBackgroundColor(Color.TRANSPARENT)
+        val labelRow = bar.getChildAt(1) as? ViewGroup ?: return
+        fun styleLabels(view: View) {
+            if (view is TextView) {
+                view.setTextColor(Color.WHITE)
+                view.setShadowLayer(3f * resources.displayMetrics.density, 0f, 1f, 0xCC000000.toInt())
+            } else if (view is ViewGroup) {
+                for (index in 0 until view.childCount) styleLabels(view.getChildAt(index))
+            }
+        }
+        styleLabels(labelRow)
+        // Yapchik can finish rebinding a label after set() returns.
+        bar.post {
+            val currentRow = bar.getChildAt(1) as? ViewGroup ?: return@post
+            styleLabels(currentRow)
         }
     }
 

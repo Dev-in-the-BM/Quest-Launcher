@@ -31,6 +31,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.theonionsarewatching.yapchik.SoftkeyBar
 import com.theonionsarewatching.yapchik.SoftkeyController
 import com.theonionsarewatching.yapchik.Softkeys
+import com.theonionsarewatching.yapchik.Yapchik
 import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
 import quest.devinthebm.launcher.data.NotificationCounts
@@ -220,6 +221,7 @@ class MainActivity : ThemedActivity() {
                 right(label = { rightKeyLabel() }) { openRightKeyApp() }
             }
         }
+        styleHomeSoftkeyLabels()
         addAppMenuButtonToSoftkeyBar()
 
         // Back opens the app drawer; long-pressing it launches the configured app instead
@@ -272,6 +274,34 @@ class MainActivity : ThemedActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
+    }
+
+    private fun styleHomeSoftkeyLabels() {
+        Yapchik.style.textColor = android.graphics.Color.WHITE
+        val content = findViewById<ViewGroup>(android.R.id.content)
+        val bar = (0 until content.childCount)
+            .map { content.getChildAt(it) }
+            .filterIsInstance<SoftkeyBar>()
+            .firstOrNull() ?: return
+        bar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        val labelRow = bar.getChildAt(1) as? ViewGroup ?: return
+        fun styleLabels(view: View) {
+            if (view is TextView) {
+                view.setTextColor(android.graphics.Color.WHITE)
+                view.setShadowLayer(
+                    3f * resources.displayMetrics.density,
+                    0f,
+                    1f,
+                    0xCC000000.toInt(),
+                )
+            } else if (view is ViewGroup) {
+                for (index in 0 until view.childCount) styleLabels(view.getChildAt(index))
+            }
+        }
+        styleLabels(labelRow)
+        bar.post {
+            (bar.getChildAt(1) as? ViewGroup)?.let(::styleLabels)
+        }
     }
 
     /** Detect rail swipes before allowing an icon to interpret the same gesture as a tap. */

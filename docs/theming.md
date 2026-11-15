@@ -26,9 +26,11 @@ stored IDs. Users choose a presentation in **Options → Appearance → Theme**.
 ## Presentation behavior
 
 - Both Home presentations show the device wallpaper behind the clock and
-  shortcuts, with a window-level scrim for legibility. `MainActivity` selects a
-  Home-specific style at runtime because `ThemedActivity` otherwise replaces
-  the manifest theme; preserve `windowShowWallpaper` in every Home style.
+  shortcuts, with a window-level scrim for legibility. The app drawer also
+  shows the wallpaper behind its grid with a translucent overlay.
+  `MainActivity` and `AppDrawerActivity` select window-specific styles at
+  runtime because `ThemedActivity` otherwise replaces manifest themes;
+  preserve `windowShowWallpaper` in those styles.
 - KaiOS keeps its existing wallpaper, accent, and focus behavior.
 - Material 2 uses the device's day/night configuration, a transparent Home
   surface over the wallpaper,

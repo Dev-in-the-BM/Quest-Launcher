@@ -100,11 +100,20 @@
         <item name="android:windowBackground">@drawable/bg_home_scrim</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="launcherHomeBackground">@android:color/transparent</item>
+        <item name="launcherPrimaryText">@color/kai_text</item>
     </style>
 
     <!-- App drawer: wallpaper behind a translucent black scrim, edge to edge,
          matching the rest of the KaiOS chrome instead of a solid bar. -->
     <style name="Theme.QuestLauncher.Drawer" parent="Theme.QuestLauncher.Home">
+        <item name="android:windowBackground">@color/kai_overlay</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- The drawer is also themed at runtime; keep wallpaper behind its grid
+         in Material 2 rather than inheriting the opaque Material background. -->
+    <style name="Theme.QuestLauncher.Drawer.Material2" parent="Theme.QuestLauncher.Material2">
+        <item name="android:windowShowWallpaper">true</item>
         <item name="android:windowBackground">@color/kai_overlay</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
