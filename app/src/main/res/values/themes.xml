@@ -71,6 +71,69 @@
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
+    <style name="Theme.QuestLauncher.Aeris" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/aeris_primary</item>
+        <item name="colorPrimaryVariant">@color/aeris_primary</item>
+        <item name="colorSecondary">@color/aeris_primary</item>
+        <item name="colorSecondaryVariant">@color/aeris_primary</item>
+        <item name="colorAccent">@color/aeris_primary</item>
+        <item name="android:colorAccent">@color/aeris_primary</item>
+        <item name="colorSurface">@color/aeris_surface</item>
+        <item name="colorOnSurface">@color/aeris_on_surface</item>
+        <item name="android:colorBackground">@color/aeris_background</item>
+        <item name="android:windowBackground">@color/aeris_background</item>
+        <item name="android:statusBarColor">@color/aeris_background</item>
+        <item name="android:navigationBarColor">@color/aeris_background</item>
+        <item name="android:windowLightStatusBar">@bool/m2_light_system_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/m2_light_system_bars</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
+        <item name="launcherWindowSurface">@color/aeris_background</item>
+        <item name="launcherBarBackground">@color/aeris_background</item>
+        <item name="launcherPrimaryText">@color/aeris_on_surface</item>
+        <item name="launcherPlainText">@color/aeris_on_surface</item>
+        <item name="launcherSecondaryText">@color/aeris_secondary_text</item>
+        <item name="launcherFocusFill">@color/aeris_focus_fill</item>
+        <item name="launcherRowBackground">@drawable/aeris_row_focus</item>
+        <item name="launcherHomeBackground">@color/aeris_background</item>
+        <item name="launcherRailPanel">@android:color/transparent</item>
+        <item name="launcherOnAccentText">@color/aeris_on_primary</item>
+        <item name="launcherRailFocusBackground">@drawable/aeris_row_focus</item>
+        <item name="launcherRailAddBackground">@drawable/aeris_rail_add</item>
+        <item name="launcherRailAddTint">@color/aeris_primary</item>
+        <item name="launcherScreenTitleColor">@color/aeris_on_surface</item>
+        <item name="launcherScreenTitleSize">@dimen/aeris_screen_title</item>
+        <item name="launcherUtilityRowMinHeight">56dp</item>
+        <item name="launcherRowTrailingSize">14sp</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.QuestLauncher.Aeris.AlertDialog</item>
+        <item name="android:alertDialogTheme">@style/Theme.QuestLauncher.Aeris.Dialog</item>
+        <item name="popupMenuStyle">@style/Widget.QuestLauncher.Aeris.PopupMenu</item>
+        <item name="dropDownListViewStyle">@style/Widget.QuestLauncher.Aeris.PopupList</item>
+        <item name="android:textColorPrimary">@color/aeris_on_surface</item>
+        <item name="android:textColorSecondary">@color/aeris_secondary_text</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+    <style name="Theme.QuestLauncher.Aeris.Dialog" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/aeris_dialog_background</item>
+        <item name="colorAccent">@color/aeris_primary</item>
+        <item name="android:textColorPrimary">@color/aeris_on_surface</item>
+        <item name="android:textColorSecondary">@color/aeris_secondary_text</item>
+    </style>
+    <style name="ThemeOverlay.QuestLauncher.Aeris.AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/aeris_surface</item>
+        <item name="colorOnSurface">@color/aeris_on_surface</item>
+        <item name="colorPrimary">@color/aeris_primary</item>
+        <item name="android:colorBackground">@color/aeris_surface</item>
+    </style>
+    <style name="Widget.QuestLauncher.Aeris.PopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:popupBackground">@drawable/aeris_popup_background</item>
+    </style>
+    <style name="Widget.QuestLauncher.Aeris.PopupList" parent="Widget.AppCompat.ListView.DropDown">
+        <item name="android:listSelector">@drawable/aeris_popup_focus</item>
+        <item name="android:divider">@android:color/transparent</item>
+        <item name="android:dividerHeight">0dp</item>
+    </style>
+
     <style name="ThemeOverlay.QuestLauncher.Material2.AlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="colorSurface">@color/m2_elevated_surface</item>
         <item name="colorOnSurface">@color/m2_on_surface</item>
@@ -102,6 +165,16 @@
         <item name="launcherHomeBackground">@android:color/transparent</item>
         <item name="launcherPrimaryText">@color/kai_text</item>
     </style>
+    <style name="Theme.QuestLauncher.Home.Aeris" parent="Theme.QuestLauncher.Aeris">
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@drawable/bg_home_scrim</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="launcherHomeBackground">@android:color/transparent</item>
+        <item name="launcherPrimaryText">@color/kai_text</item>
+        <item name="launcherScreenTitleColor">@color/kai_text</item>
+        <item name="launcherSecondaryText">@color/kai_text_secondary</item>
+        <item name="launcherRailFocusBackground">@drawable/aeris_rail_focus</item>
+    </style>
 
     <!-- App drawer: wallpaper behind a translucent black scrim, edge to edge,
          matching the rest of the KaiOS chrome instead of a solid bar. -->
@@ -116,6 +189,13 @@
         <item name="android:windowShowWallpaper">true</item>
         <item name="android:windowBackground">@color/kai_overlay</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+    <style name="Theme.QuestLauncher.Drawer.Aeris" parent="Theme.QuestLauncher.Aeris">
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@color/kai_overlay</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="launcherPrimaryText">@color/kai_text</item>
+        <item name="launcherSecondaryText">@color/kai_text_secondary</item>
     </style>
 
     <!-- Accent color overlays applied at runtime (see LauncherPrefs.AccentColor)

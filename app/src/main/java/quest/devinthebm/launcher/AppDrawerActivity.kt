@@ -60,6 +60,7 @@ class AppDrawerActivity : ThemedActivity() {
         when (descriptor.components) {
             LauncherComponentSelection.KaiOS -> R.style.Theme_QuestLauncher_Drawer
             LauncherComponentSelection.Material2 -> R.style.Theme_QuestLauncher_Drawer_Material2
+            LauncherComponentSelection.Aeris -> R.style.Theme_QuestLauncher_Drawer_Aeris
         }
 
     private lateinit var prefs: LauncherPrefs
@@ -105,20 +106,29 @@ class AppDrawerActivity : ThemedActivity() {
         grid = findViewById(R.id.apps_grid)
         titleView = findViewById(R.id.title)
         searchField = findViewById(R.id.app_search)
-        if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2) {
-            searchField.setBackgroundResource(R.drawable.m2_search_background)
+        if (launcherTheme.components != quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) {
+            searchField.setBackgroundResource(
+                if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.Aeris) {
+                    R.drawable.aeris_search_background
+                } else {
+                    R.drawable.m2_search_background
+                },
+            )
             val horizontal = resources.getDimensionPixelSize(R.dimen.m2_search_padding_horizontal)
             val vertical = resources.getDimensionPixelSize(R.dimen.m2_search_padding_vertical)
             searchField.setPadding(horizontal, vertical, horizontal, vertical)
             searchField.minHeight = resources.getDimensionPixelSize(R.dimen.m2_search_min_height)
-            searchField.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.m2_on_surface))
-            searchField.setHintTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.m2_secondary_text))
+            val onSurface = if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.Aeris) R.color.aeris_on_surface else R.color.m2_on_surface
+            val secondary = if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.Aeris) R.color.aeris_secondary_text else R.color.m2_secondary_text
+            searchField.setTextColor(androidx.core.content.ContextCompat.getColor(this, onSurface))
+            searchField.setHintTextColor(androidx.core.content.ContextCompat.getColor(this, secondary))
         }
         pageIndicator = findViewById(R.id.page_indicator)
         gridFocusHighlight = findViewById<View>(R.id.grid_focus_highlight).apply {
             background = when (launcherTheme.components) {
                 quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS -> gridFocusDrawable
                 quest.devinthebm.launcher.theme.LauncherComponentSelection.Material2 -> getDrawable(R.drawable.m2_grid_focus)
+                quest.devinthebm.launcher.theme.LauncherComponentSelection.Aeris -> getDrawable(R.drawable.aeris_grid_focus)
             }
             isSelected = true
         }

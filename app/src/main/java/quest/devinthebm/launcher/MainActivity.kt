@@ -59,6 +59,7 @@ class MainActivity : ThemedActivity() {
         when (descriptor.components) {
             LauncherComponentSelection.KaiOS -> R.style.Theme_QuestLauncher_Home
             LauncherComponentSelection.Material2 -> R.style.Theme_QuestLauncher_Home_Material2
+            LauncherComponentSelection.Aeris -> R.style.Theme_QuestLauncher_Home_Aeris
         }
 
     private lateinit var prefs: LauncherPrefs

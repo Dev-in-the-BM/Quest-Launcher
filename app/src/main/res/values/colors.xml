@@ -35,4 +35,17 @@
     <color name="m2_on_primary">#FFFFFF</color>
     <color name="m2_outline">#E0E0E0</color>
     <color name="m2_search_fill">#F1F3F4</color>
+    <color name="aeris_background">#FFFFFF</color>
+    <color name="aeris_surface">#FFFFFF</color>
+    <color name="aeris_elevated_surface">#F3F6FC</color>
+    <color name="aeris_subtle_surface">#F8F9FA</color>
+    <color name="aeris_primary">#0B57D0</color>
+    <color name="aeris_on_primary">#FFFFFF</color>
+    <color name="aeris_on_surface">#1F1F1F</color>
+    <color name="aeris_secondary_text">#5F6368</color>
+    <color name="aeris_outline">#DADCE0</color>
+    <color name="aeris_control_rail">#757A80</color>
+    <color name="aeris_divider">#E0E0E0</color>
+    <color name="aeris_focus_fill">#C4C7C5</color>
+    <color name="aeris_row_focus">#E0E0E0</color>
 </resources>

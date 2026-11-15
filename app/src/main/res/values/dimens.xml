@@ -14,4 +14,5 @@
     <dimen name="m2_search_padding_vertical">10dp</dimen>
     <dimen name="m2_search_min_height">48dp</dimen>
     <dimen name="m2_screen_title">20sp</dimen>
+    <dimen name="aeris_screen_title">28sp</dimen>
 </resources>

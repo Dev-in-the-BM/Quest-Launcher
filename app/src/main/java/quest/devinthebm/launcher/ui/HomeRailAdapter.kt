@@ -90,6 +90,8 @@ class HomeRailAdapter(
                 try {
                     if (attrs.getResourceId(0, 0) == R.drawable.m2_rail_focus) {
                         selectionHighlight.setBackgroundResource(R.drawable.m2_rail_focus)
+                    } else if (attrs.getResourceId(0, 0) == R.drawable.aeris_rail_focus) {
+                        selectionHighlight.setBackgroundResource(R.drawable.aeris_rail_focus)
                     }
                 } finally {
                     attrs.recycle()

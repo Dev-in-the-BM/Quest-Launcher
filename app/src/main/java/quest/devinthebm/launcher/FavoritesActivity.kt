@@ -21,7 +21,12 @@ import quest.devinthebm.launcher.util.launchAppByKey
 
 /** Fixed, non-scrolling 3x3 grid of user-selected favorite apps. */
 class FavoritesActivity : ThemedActivity() {
-    override fun activityThemeStyle(descriptor: ThemeDescriptor): Int = R.style.Theme_QuestLauncher_Drawer
+    override fun activityThemeStyle(descriptor: ThemeDescriptor): Int =
+        when (descriptor.components) {
+            LauncherComponentSelection.KaiOS -> R.style.Theme_QuestLauncher_Drawer
+            LauncherComponentSelection.Material2 -> R.style.Theme_QuestLauncher_Drawer_Material2
+            LauncherComponentSelection.Aeris -> R.style.Theme_QuestLauncher_Drawer_Aeris
+        }
 
     private lateinit var prefs: LauncherPrefs
     private lateinit var adapter: FavoritesAdapter

@@ -16,4 +16,17 @@
     <color name="m2_on_primary">#202124</color>
     <color name="m2_outline">#5F6368</color>
     <color name="m2_search_fill">#3C4043</color>
+    <color name="aeris_background">#202124</color>
+    <color name="aeris_surface">#202124</color>
+    <color name="aeris_elevated_surface">#303134</color>
+    <color name="aeris_subtle_surface">#292A2D</color>
+    <color name="aeris_primary">#A8C7FA</color>
+    <color name="aeris_on_primary">#202124</color>
+    <color name="aeris_on_surface">#E8EAED</color>
+    <color name="aeris_secondary_text">#BDC1C6</color>
+    <color name="aeris_outline">#5F6368</color>
+    <color name="aeris_control_rail">#80868B</color>
+    <color name="aeris_divider">#3C4043</color>
+    <color name="aeris_focus_fill">#5F6368</color>
+    <color name="aeris_row_focus">#484A4D</color>
 </resources>

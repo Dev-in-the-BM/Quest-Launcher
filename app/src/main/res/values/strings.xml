@@ -2,6 +2,7 @@
 <resources>
     <string name="theme_kaios">KaiOS</string>
     <string name="theme_material2">Material 2</string>
+    <string name="theme_aeris">Aeris</string>
     <string name="settings_theme">Theme</string>
     <string name="app_name">Quest Launcher</string>
 

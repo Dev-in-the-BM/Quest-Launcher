@@ -1,8 +1,9 @@
 # Launcher themes
 
-Quest Launcher ships KaiOS and Material 2 presentations in the same APK. The
-KaiOS presentation remains the default for existing installs and for unknown
-stored IDs. Users choose a presentation in **Options → Appearance → Theme**.
+Quest Launcher ships KaiOS, Material 2, and Aeris presentations in the same
+APK. The KaiOS presentation remains the default for existing installs and for
+unknown stored IDs. Users choose a presentation in **Options → Appearance →
+Theme**.
 
 ## Architecture
 
@@ -17,11 +18,11 @@ stored IDs. Users choose a presentation in **Options → Appearance → Theme**.
 - Themed Activities apply the catalog style before `super.onCreate()` and
   refresh stale back-stack instances when they resume after a theme change.
 - Android resources are the rendering layer. Shared semantic attributes in
-  `res/values/attrs.xml` map to KaiOS or Material 2 resources in
-  `res/values/themes.xml`; Material 2 colors have light and `values-night`
-  variants. Keep complete theme styles in the unqualified resource set—put
-  palette/system-bar differences in qualified color/bool resources rather than
-  shadowing the theme with a partial night style.
+  `res/values/attrs.xml` map to each theme's resources in
+  `res/values/themes.xml`; Material 2 and Aeris colors have light and
+  `values-night` variants. Keep complete theme styles in the unqualified
+  resource set—put palette/system-bar differences in qualified color/bool
+  resources rather than shadowing the theme with a partial night style.
 
 ## Presentation behavior
 
@@ -45,6 +46,15 @@ stored IDs. Users choose a presentation in **Options → Appearance → Theme**.
   each side to give icons breathing room. Do not tint/recolor app-owned icons,
   and do not draw a focus frame. KaiOS focus remains on its existing resource
   path.
+- Aeris uses cool-neutral surfaces and Google blue (`#0B57D0` light,
+  `#A8C7FA` dark), while retaining wallpaper-backed Home and drawer behavior.
+  Its focused/selected states deliberately use the same neutral colors as M2:
+  `#E0E0E0` light and `#484A4D` dark. Pressed feedback likewise matches M2:
+  `#C4C7C5` light and `#5F6368` dark. Aeris changes geometry, not focus color:
+  app tiles have 18dp corners, list rows 12dp, popup/dialog surfaces 20dp,
+  search fields 14dp, and utility rows a 56dp minimum height. Screen titles are
+  28sp. These are Aeris-only resources and styles; do not alter M2 tokens or
+  KaiOS styling to implement Aeris.
 
 When changing theme colors or foreground treatment, follow Android's
 [color guidance](https://developer.android.com/design/ui/mobile/guides/styles/color):
@@ -58,7 +68,10 @@ git diff --check
 ```
 
 The app has no unit-test sources currently, so Gradle reports the unit-test
-tasks as `NO-SOURCE`. For UI changes, install the debug APK with
+tasks as `NO-SOURCE`. Aeris was built and installed on the attached HIT device;
+the light-mode App Drawer and focused app tile were inspected over ADB. Dark
+mode and the full theme-switch/persistence matrix still need separate
+verification. For UI changes, install the debug APK with
 `adb install -r app/build/outputs/apk/debug/app-debug.apk`; this updates the
 existing installation without clearing app data. Verify theme persistence
 after a process restart, both day and night palettes, focus/pressed states,

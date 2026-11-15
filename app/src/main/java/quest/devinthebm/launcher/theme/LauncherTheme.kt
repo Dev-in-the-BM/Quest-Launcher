@@ -16,15 +16,18 @@ value class ThemeId(val value: String)
 sealed interface LauncherComponentSelection {
     data object KaiOS : LauncherComponentSelection
     data object Material2 : LauncherComponentSelection
+    data object Aeris : LauncherComponentSelection
 }
 
-private class LauncherPresentation(private val material2: Boolean) : ThemePresentationExtension {
+private class LauncherPresentation(private val selection: LauncherComponentSelection) : ThemePresentationExtension {
     override fun configureActivity(activity: Activity) {
         val style = Yapchik.style
-        style.backgroundColor = ContextCompat.getColor(activity, if (material2) R.color.m2_background else R.color.kai_softkey_bg)
-        style.textColor = ContextCompat.getColor(activity, if (material2) R.color.m2_control_ink else R.color.kai_text)
-        style.pressedTextColor = ContextCompat.getColor(activity, if (material2) R.color.m2_action else R.color.kai_accent)
-        style.dividerColor = ContextCompat.getColor(activity, if (material2) R.color.m2_divider else R.color.kai_divider)
+        val aeris = selection == LauncherComponentSelection.Aeris
+        val material = selection != LauncherComponentSelection.KaiOS
+        style.backgroundColor = ContextCompat.getColor(activity, when { aeris -> R.color.aeris_background; material -> R.color.m2_background; else -> R.color.kai_softkey_bg })
+        style.textColor = ContextCompat.getColor(activity, when { aeris -> R.color.aeris_on_surface; material -> R.color.m2_control_ink; else -> R.color.kai_text })
+        style.pressedTextColor = ContextCompat.getColor(activity, when { aeris -> R.color.aeris_primary; material -> R.color.m2_action; else -> R.color.kai_accent })
+        style.dividerColor = ContextCompat.getColor(activity, when { aeris -> R.color.aeris_divider; material -> R.color.m2_divider; else -> R.color.kai_divider })
         style.heightDp = 48
         style.textSizeSp = 15f
         style.horizontalPaddingDp = 18
@@ -46,8 +49,9 @@ data class ThemeDescriptor(
 
 object LauncherThemeCatalog {
     val descriptors = listOf(
-        ThemeDescriptor(ThemeId("kaios"), R.string.theme_kaios, R.style.Theme_QuestLauncher, LauncherComponentSelection.KaiOS, LauncherPresentation(false)),
-        ThemeDescriptor(ThemeId("material2"), R.string.theme_material2, R.style.Theme_QuestLauncher_Material2, LauncherComponentSelection.Material2, LauncherPresentation(true)),
+        ThemeDescriptor(ThemeId("kaios"), R.string.theme_kaios, R.style.Theme_QuestLauncher, LauncherComponentSelection.KaiOS, LauncherPresentation(LauncherComponentSelection.KaiOS)),
+        ThemeDescriptor(ThemeId("material2"), R.string.theme_material2, R.style.Theme_QuestLauncher_Material2, LauncherComponentSelection.Material2, LauncherPresentation(LauncherComponentSelection.Material2)),
+        ThemeDescriptor(ThemeId("aeris"), R.string.theme_aeris, R.style.Theme_QuestLauncher_Aeris, LauncherComponentSelection.Aeris, LauncherPresentation(LauncherComponentSelection.Aeris)),
     )
     val defaultId = ThemeId("kaios")
     init {
