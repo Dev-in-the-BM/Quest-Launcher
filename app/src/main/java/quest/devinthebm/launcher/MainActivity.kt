@@ -70,6 +70,7 @@ class MainActivity : ThemedActivity() {
     private var railExpanded = false
     private var activeRailKey: LauncherPrefs.HomeKey? = null
     private var railHorizontal = false
+    private var visibleRailSlots = HomeRailAdapter.SLOTS_VISIBLE
     private var focusedRailIndex = 0
     private var displayedRailHighlightIndex = RecyclerView.NO_POSITION
     private var wheelAnimator: ValueAnimator? = null
@@ -157,7 +158,17 @@ class MainActivity : ThemedActivity() {
         rail.itemAnimator = null
         rail.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
             val extent = if (railHorizontal) view.width else view.height
-            val slot = (extent - (24 * resources.displayMetrics.density).toInt()) / HomeRailAdapter.SLOTS_VISIBLE
+            val density = resources.displayMetrics.density
+            val edgeSpace = (24 * density).toInt()
+            val available = (extent - edgeSpace).coerceAtLeast(1)
+            // Keep the existing 54dp icon dimensions. On short screens show
+            // fewer slots rather than squeezing five icons into overlapping rows.
+            visibleRailSlots = (available / (MIN_RAIL_SLOT_DP * density).toInt())
+                .coerceIn(1, HomeRailAdapter.SLOTS_VISIBLE)
+            val slot = maxOf(
+                available / HomeRailAdapter.SLOTS_VISIBLE,
+                (MIN_RAIL_SLOT_DP * density).toInt(),
+            )
             if (slot > 0 && adapter.itemHeightPx != slot) {
                 val edge = (extent - slot) / 2
                 if (railHorizontal) view.setPadding(edge, 0, edge, 0) else view.setPadding(0, edge, 0, edge)
@@ -405,7 +416,7 @@ class MainActivity : ThemedActivity() {
     private fun openWheel() {
         setRailExpanded(true)
         if (adapter.itemCount == 0) return
-        focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
+        focusedRailIndex = minOf(visibleRailSlots / 2, adapter.itemCount - 1)
         wheelAnimator?.cancel()
         centerRailItem(focusedRailIndex)
         setRailHighlight(focusedRailIndex, animate = false)
@@ -425,7 +436,7 @@ class MainActivity : ThemedActivity() {
     private fun railCenterPosition(): Int = if (railExpanded) {
         focusedRailIndex
     } else {
-        minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, (adapter.itemCount - 1).coerceAtLeast(0))
+        minOf(visibleRailSlots / 2, (adapter.itemCount - 1).coerceAtLeast(0))
     }
 
     private fun updateWheelCurve() {
@@ -437,13 +448,10 @@ class MainActivity : ThemedActivity() {
         // center +9dp, outer -5dp when closed (a slightly flatter crescent);
         // center +16dp, adjacent +12dp, outer 0dp when open. Derive it from
         // each row's visible position so it follows the wheel as it scrolls.
-        val verticalRadius = slot * 2.35f
         for (i in 0 until rail.childCount) {
             val row = rail.getChildAt(i)
             val position = if (railHorizontal) (row.left + row.right) / 2f else (row.top + row.bottom) / 2f
             val relativeY = position - center
-            val normalizedY = (relativeY / verticalRadius).coerceIn(-0.98f, 0.98f)
-            val depth = kotlin.math.sqrt(1f - normalizedY * normalizedY)
             val distance = kotlin.math.abs(relativeY) / slot
             val halfSpan = (distance / 2f).coerceIn(0f, 1f)
             val curve = 1f - halfSpan * halfSpan
@@ -451,9 +459,12 @@ class MainActivity : ThemedActivity() {
             val curveOffset = (if (railExpanded) 16f * curve else -5f + 14f * curve) * density
             if (railHorizontal) circle.translationY = -curveOffset
             else circle.translationX = curveOffset * if (activeRailKey == LauncherPrefs.HomeKey.RIGHT) -1f else 1f
-            circle.scaleX = 0.72f + 0.28f * depth
-            circle.scaleY = circle.scaleX
-            circle.alpha = 0.42f + 0.58f * depth
+            // Keep every shortcut at the same visual size and opacity. The
+            // crescent translation provides the wheel depth without making
+            // off-center apps look smaller or faded.
+            circle.scaleX = 1f
+            circle.scaleY = 1f
+            circle.alpha = 1f
             row.findViewById<View>(R.id.selection_highlight).apply {
                 // A multiplier, not a fixed size: it remains 18% larger than
                 // whichever icon shape/size is rendered in this slot.
@@ -670,7 +681,7 @@ class MainActivity : ThemedActivity() {
                 wheelAnimator?.cancel()
                 adapter.submit(entries)
                 if (railExpanded && adapter.itemCount > 0) {
-                    focusedRailIndex = minOf(HomeRailAdapter.SLOTS_VISIBLE / 2, adapter.itemCount - 1)
+                    focusedRailIndex = minOf(visibleRailSlots / 2, adapter.itemCount - 1)
                 }
                 rail.post {
                     centerRailItem(railCenterPosition())
@@ -951,9 +962,10 @@ class MainActivity : ThemedActivity() {
         // Shown at most once per process so we don't nag on every resume.
         private var defaultPromptShown = false
         const val RAIL_HIGHLIGHT_FADE_MS = 180L
-        // With an 84dp rail and 54dp icons this leaves ~half the middle icon
-        // visible, while the outer icons only peek in from the edge.
-        private const val CLOSED_RAIL_OFFSET_DP = 50f
+        // Keep most of the 54dp icon face visible in the closed peek while
+        // leaving enough rail motion to signal that it can be opened.
+        private const val CLOSED_RAIL_OFFSET_DP = 34f
+        private const val MIN_RAIL_SLOT_DP = 64f
         private const val APP_GRID_BUTTON_TAG = "quest_home_app_grid_button"
     }
 }
