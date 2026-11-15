@@ -285,8 +285,14 @@ class AppDrawerActivity : ThemedActivity() {
 
         // Keep the wallpaper visible through Yapchik. Its labels stay white
         // with a restrained dark shadow so they remain legible on bright images.
+        // Softkey actions aren't D-pad stops: block descendant focus so Android
+        // can't move focus here when a grid item detaches during scrolling.
+        bar.isFocusable = false
+        bar.isFocusableInTouchMode = false
+        bar.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
         bar.setBackgroundColor(Color.TRANSPARENT)
         val labelRow = bar.getChildAt(1) as? ViewGroup ?: return
+        labelRow.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
         fun styleLabels(view: View) {
             if (view is TextView) {
                 view.setTextColor(Color.WHITE)
