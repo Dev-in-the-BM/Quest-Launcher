@@ -76,10 +76,13 @@ class HomeRailAdapter(
                 selectionHighlight.background = SquircleDrawable(
                     NotificationDotColor.forIcon(app.key, app.icon),
                 )
-                itemView.context.obtainStyledAttributes(intArrayOf(R.attr.launcherRailFocusBackground)).use { attrs ->
+                val attrs = itemView.context.obtainStyledAttributes(intArrayOf(R.attr.launcherRailFocusBackground))
+                try {
                     if (attrs.getResourceId(0, 0) == R.drawable.m2_rail_focus) {
                         selectionHighlight.setBackgroundResource(R.drawable.m2_rail_focus)
                     }
+                } finally {
+                    attrs.recycle()
                 }
                 if (hasNotification(app)) {
                     notifDot.visibility = View.VISIBLE

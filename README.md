@@ -118,6 +118,10 @@ row (or its number key) to reassign it, including pinning a specific
 "Add shortcut" row appends a new one; the Clear soft key removes the focused
 shortcut.
 
+Shortcut rows resolve their theme styling with Android's `TypedArray` lifecycle
+API, avoiding a launch-time crash when favorites are bound on older Android
+versions.
+
 ### Hide / Show Apps
 
 Lists every installed app with a "Hidden" badge; Center/OK toggles whether
