@@ -20,17 +20,18 @@
 
     <!-- Options menu -->
     <string name="opt_all_apps">All Apps</string>
+    <string name="opt_favorites">Favorites</string>
     <string name="opt_customize_shortcuts">Customize Home Shortcuts</string>
     <string name="opt_hide_apps">Hide / Show Apps</string>
     <string name="opt_set_wallpaper">Set Wallpaper</string>
     <string name="opt_default_launcher">Set as Default Launcher</string>
-    <string name="opt_system_settings">System Settings</string>
     <string name="opt_back_longpress">Back Button (Long-Press)</string>
 
     <!-- App drawer context options -->
     <string name="ctx_open">Open</string>
     <string name="ctx_add_home">Add to Home Shortcuts</string>
     <string name="ctx_hide">Hide App</string>
+    <string name="ctx_app_info">App Info</string>
     <string name="ctx_change_icon">Change Icon</string>
     <string name="ctx_reset_icon">Reset Icon</string>
     <string name="ctx_disable_wrap">Don\'t Wrap Icon</string>
@@ -39,6 +40,8 @@
 
     <!-- Screen titles -->
     <string name="title_all_apps">All Apps</string>
+    <string name="favorites_add">Add favorite app</string>
+    <string name="favorites_remove">Remove from favorites</string>
     <string name="title_options">Options</string>
     <string name="title_hide_apps">Hide / Show Apps</string>
     <string name="title_shortcuts">Home Shortcuts</string>
@@ -66,8 +69,6 @@
     <string name="back_longpress_unset_toast">No app set for long-press Back. Configure it in Options.</string>
 
     <!-- Launcher Settings -->
-    <string name="title_launcher_settings">Launcher Settings</string>
-    <string name="opt_launcher_settings">Launcher Settings</string>
     <string name="settings_icon_size">App Icon Size</string>
     <string name="settings_icon_small">Small</string>
     <string name="settings_icon_medium">Medium</string>
@@ -109,6 +110,10 @@
     <string name="icon_shape_rounded_square">Rounded Square</string>
     <string name="icon_shape_none">None</string>
     <string name="settings_icon_background">Background for Plain Icons</string>
+    <string name="settings_category_home_navigation">Home &amp; Navigation</string>
+    <string name="settings_category_app_drawer">App Drawer</string>
+    <string name="settings_category_appearance">Appearance</string>
+    <string name="settings_category_notifications">Notifications</string>
 
     <!-- Wallpaper picker -->
     <string name="title_wallpaper_picker">Choose Wallpaper</string>
@@ -138,4 +143,9 @@
     <string name="cd_notif_calls">Missed calls</string>
     <string name="cd_notif_messages">Messages</string>
     <string name="cd_notif_other">Other notifications</string>
+    <string name="key_up">D-pad Up</string><string name="key_left">D-pad Left</string>
+    <string name="key_right">D-pad Right</string><string name="key_down">D-pad Down</string>
+    <string name="key_soft_left">Left softkey</string><string name="key_soft_right">Right softkey</string>
+    <string name="key_action_app">Launch app…</string><string name="key_action_rail">Open favorites rail</string>
+    <string name="key_action_favorites">Open favorites grid</string><string name="key_action_notifications">Open notifications</string>
 </resources>

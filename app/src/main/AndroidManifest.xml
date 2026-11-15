@@ -38,10 +38,8 @@
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
             android:excludeFromRecents="true"
-            android:resizeableActivity="false"
-            android:screenOrientation="portrait"
             android:windowSoftInputMode="stateAlwaysHidden"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize|screenLayout|smallestScreenSize">
+            android:configChanges="keyboardHidden|keyboard|navigation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -50,78 +48,66 @@
         </activity>
 
         <activity
-            android:name=".LauncherSettingsActivity"
-            android:exported="true"
-            android:icon="@drawable/settings_112"
-            android:label="@string/title_launcher_settings"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:name=".SettingsCategoryActivity"
+            android:exported="false"
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".AppDrawerActivity"
             android:exported="false"
             android:theme="@style/Theme.QuestLauncher.Drawer"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
+
+        <activity
+            android:name=".FavoritesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.QuestLauncher.Drawer"
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".OptionsActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".HideAppsActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".ShortcutConfigActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".AppPickerActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".ActivityPickerActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".IconPackActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".IconPickerActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".WallpaperPickerActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <activity
             android:name=".NoticesActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
-            android:configChanges="keyboardHidden|keyboard|navigation|orientation|screenSize" />
+            android:configChanges="keyboardHidden|keyboard|navigation" />
 
         <!-- Feeds the Home notification summary (calls/messages/other) and the
              custom Notices screen. Requires the user to grant Notification

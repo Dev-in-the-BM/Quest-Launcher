@@ -71,6 +71,46 @@ class LauncherPrefs(context: Context) {
         }
     }
 
+    // ------------------------------------------------------------- Favorites
+
+    /** Ordered app keys shown in the fixed 3x3 favorites grid. */
+    fun getFavoriteKeys(): MutableList<String> {
+        val raw = prefs.getString(KEY_FAVORITES, "").orEmpty()
+        return raw.split('\n').filter { it.isNotEmpty() }.take(MAX_FAVORITES).toMutableList()
+    }
+
+    fun setFavoriteKeys(keys: List<String>) {
+        prefs.edit().putString(KEY_FAVORITES, keys.distinct().take(MAX_FAVORITES).joinToString("\n")).apply()
+    }
+
+    enum class HomeKey(val key: String, val labelRes: Int) {
+        UP("up", R.string.key_up), LEFT("left", R.string.key_left),
+        RIGHT("right", R.string.key_right), DOWN("down", R.string.key_down),
+        SOFT_LEFT("soft_left", R.string.key_soft_left), SOFT_RIGHT("soft_right", R.string.key_soft_right),
+    }
+
+    enum class HomeKeyAction(val key: String, val labelRes: Int) {
+        APP("app", R.string.key_action_app), RAIL("rail", R.string.key_action_rail),
+        FAVORITES("favorites", R.string.key_action_favorites),
+        NOTIFICATIONS("notifications", R.string.key_action_notifications);
+    }
+
+    fun getHomeKeyAction(homeKey: HomeKey): HomeKeyAction =
+        HomeKeyAction.entries.find { it.key == prefs.getString("home_key_${homeKey.key}", null) }
+            ?: when (homeKey) {
+                HomeKey.SOFT_LEFT -> HomeKeyAction.NOTIFICATIONS
+                HomeKey.SOFT_RIGHT -> HomeKeyAction.APP
+                HomeKey.UP -> HomeKeyAction.FAVORITES
+                else -> HomeKeyAction.RAIL
+            }
+
+    fun setHomeKeyAction(homeKey: HomeKey, action: HomeKeyAction) {
+        prefs.edit().putString("home_key_${homeKey.key}", action.key).apply()
+    }
+
+    fun getHomeKeyApp(homeKey: HomeKey): String? = prefs.getString("home_key_app_${homeKey.key}", null)
+    fun setHomeKeyApp(homeKey: HomeKey, app: String?) { prefs.edit().putString("home_key_app_${homeKey.key}", app).apply() }
+
     // ------------------------------------------------------- Back long-press
 
     /** App key launched on long-pressing Back, or null if unconfigured. */
@@ -253,6 +293,7 @@ class LauncherPrefs(context: Context) {
     companion object {
         /** Maximum number of home shortcuts (mapped to keys 1..9). */
         const val MAX_SHORTCUTS = 9
+        const val MAX_FAVORITES = 9
 
         /** Default icon size: exactly fills a 3x3 grid with no scrolling. */
         const val DEFAULT_ICON_SIZE_PERCENT = 100
@@ -260,6 +301,7 @@ class LauncherPrefs(context: Context) {
         private const val PREFS_NAME = "flip_launcher_prefs"
         private const val KEY_HIDDEN = "hidden_apps"
         private const val KEY_SHORTCUTS = "home_shortcuts"
+        private const val KEY_FAVORITES = "favorite_apps"
         private const val KEY_BACK_LONGPRESS_APP = "back_longpress_app"
         private const val KEY_ICON_SIZE_PERCENT = "icon_size_percent"
         private const val KEY_RIGHT_KEY_APP = "right_key_app"

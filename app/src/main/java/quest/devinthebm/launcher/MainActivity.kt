@@ -139,6 +139,7 @@ class MainActivity : ThemedActivity() {
         notifOtherGroup = findViewById(R.id.notif_other_group)
         notifOtherCount = findViewById(R.id.notif_other_count)
         rail = findViewById(R.id.shortcuts_rail)
+        updateConfiguredRail()
 
         adapter = HomeRailAdapter(
             onClick = { _, item -> onRailClick(item) },
@@ -170,6 +171,7 @@ class MainActivity : ThemedActivity() {
         // middle child of their row, not a separate overlay over the bar.
         appMenuButton = ImageView(this).apply {
             id = View.generateViewId()
+            tag = APP_GRID_BUTTON_TAG
             background = SpotlightDrawable()
             setImageResource(R.drawable.ic_apps_dots)
             setOnClickListener { openAppDrawer() }
@@ -217,8 +219,8 @@ class MainActivity : ThemedActivity() {
         }
         softKeys = Softkeys.of(this).apply {
             set {
-                left(label = { leftKeyLabel() }) { openLeftKeyApp() }
-                right(label = { rightKeyLabel() }) { openRightKeyApp() }
+                left(label = { keyLabel(LauncherPrefs.HomeKey.SOFT_LEFT) }) { performHomeKey(LauncherPrefs.HomeKey.SOFT_LEFT) }
+                right(label = { keyLabel(LauncherPrefs.HomeKey.SOFT_RIGHT) }) { performHomeKey(LauncherPrefs.HomeKey.SOFT_RIGHT) }
             }
         }
         styleHomeSoftkeyLabels()
@@ -258,6 +260,14 @@ class MainActivity : ThemedActivity() {
             .map { content.getChildAt(it) }
             .filterIsInstance<SoftkeyBar>()
             .firstOrNull() ?: return
+        for (i in 0 until content.childCount) {
+            val otherBar = content.getChildAt(i) as? SoftkeyBar ?: continue
+            val otherRow = otherBar.getChildAt(1) as? ViewGroup ?: continue
+            for (childIndex in otherRow.childCount - 1 downTo 0) {
+                val child = otherRow.getChildAt(childIndex)
+                if (child !== appMenuButton && child.tag == APP_GRID_BUTTON_TAG) otherRow.removeViewAt(childIndex)
+            }
+        }
         val labelRow = bar.getChildAt(1) as? LinearLayout ?: return
         // The spotlight draws well beyond the button and above the bar.
         // Yapchik clips its children by default, so let the light bloom out.
@@ -265,7 +275,10 @@ class MainActivity : ThemedActivity() {
         bar.clipToPadding = false
         labelRow.clipChildren = false
         labelRow.clipToPadding = false
-        if (appMenuButton.parent === labelRow) return
+        if (appMenuButton.parent === labelRow) {
+            bar.doOnLayout { fitRailAboveSoftkeyBar(bar) }
+            return
+        }
         (appMenuButton.parent as? ViewGroup)?.removeView(appMenuButton)
         labelRow.addView(
             appMenuButton, 1,
@@ -274,6 +287,22 @@ class MainActivity : ThemedActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
+        bar.doOnLayout { fitRailAboveSoftkeyBar(bar) }
+    }
+
+    private fun fitRailAboveSoftkeyBar(bar: SoftkeyBar) {
+        if (!::rail.isInitialized || bar.height <= 0) return
+        val params = rail.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams ?: return
+        if (params.bottomMargin != bar.height) {
+            params.bottomMargin = bar.height
+            rail.layoutParams = params
+        }
+    }
+
+    private fun findSoftkeyBar(): SoftkeyBar? {
+        val content = findViewById<ViewGroup>(android.R.id.content)
+        return (0 until content.childCount).map { content.getChildAt(it) }
+            .filterIsInstance<SoftkeyBar>().firstOrNull()
     }
 
     private fun styleHomeSoftkeyLabels() {
@@ -496,6 +525,16 @@ class MainActivity : ThemedActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && appMenuButton.hasFocus()) {
+            val key = when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> LauncherPrefs.HomeKey.UP
+                KeyEvent.KEYCODE_DPAD_LEFT -> LauncherPrefs.HomeKey.LEFT
+                KeyEvent.KEYCODE_DPAD_RIGHT -> LauncherPrefs.HomeKey.RIGHT
+                KeyEvent.KEYCODE_DPAD_DOWN -> LauncherPrefs.HomeKey.DOWN
+                else -> null
+            }
+            if (key != null) { performHomeKey(key); return true }
+        }
         if (::rail.isInitialized && railExpanded && rail.hasFocus()) {
             val key = event.keyCode
             if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN ||
@@ -533,6 +572,7 @@ class MainActivity : ThemedActivity() {
         softKeys.invalidate()
         findViewById<ViewGroup>(android.R.id.content).post {
             addAppMenuButtonToSoftkeyBar()
+            findSoftkeyBar()?.let(::fitRailAboveSoftkeyBar)
             focusAppMenu()
         }
         resetHomeFocus()
@@ -648,6 +688,36 @@ class MainActivity : ThemedActivity() {
     }
 
     private fun openAppDrawer() = startActivity(Intent(this, AppDrawerActivity::class.java))
+
+    private fun updateConfiguredRail() {
+        if (!::rail.isInitialized) return
+        val railKey = listOf(LauncherPrefs.HomeKey.LEFT, LauncherPrefs.HomeKey.RIGHT, LauncherPrefs.HomeKey.DOWN)
+            .firstOrNull { prefs.getHomeKeyAction(it) == LauncherPrefs.HomeKeyAction.RAIL }
+        rail.visibility = if (railKey == null) View.GONE else View.VISIBLE
+        if (railKey != null) {
+            val params = rail.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            val rightSide = railKey == LauncherPrefs.HomeKey.RIGHT
+            params.startToStart = if (rightSide) -1 else androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            params.endToEnd = if (rightSide) androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID else -1
+            rail.layoutParams = params
+            rail.scaleX = if (rightSide) -1f else 1f
+        }
+    }
+
+    private fun performHomeKey(key: LauncherPrefs.HomeKey) {
+        when (prefs.getHomeKeyAction(key)) {
+            LauncherPrefs.HomeKeyAction.APP -> prefs.getHomeKeyApp(key)?.let(::launchAppByKey)
+            LauncherPrefs.HomeKeyAction.RAIL -> if (railExpanded) setRailExpanded(false) else openWheel()
+            LauncherPrefs.HomeKeyAction.FAVORITES -> startActivity(Intent(this, FavoritesActivity::class.java))
+            LauncherPrefs.HomeKeyAction.NOTIFICATIONS -> openNotifications()
+        }
+    }
+
+    private fun keyLabel(key: LauncherPrefs.HomeKey): String =
+        if (prefs.getHomeKeyAction(key) == LauncherPrefs.HomeKeyAction.APP)
+            prefs.getHomeKeyApp(key)?.let { AppRepository.resolveComponent(this, it)?.label }
+                ?: getString(prefs.getHomeKeyAction(key).labelRes)
+        else getString(prefs.getHomeKeyAction(key).labelRes)
 
     /** Return to the default Home state, with the app-menu action ready for OK. */
     private fun resetHomeFocus() {
@@ -801,5 +871,6 @@ class MainActivity : ThemedActivity() {
         // With an 84dp rail and 54dp icons this leaves ~half the middle icon
         // visible, while the outer icons only peek in from the edge.
         private const val CLOSED_RAIL_OFFSET_DP = 50f
+        private const val APP_GRID_BUTTON_TAG = "quest_home_app_grid_button"
     }
 }
