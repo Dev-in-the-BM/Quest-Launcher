@@ -1,6 +1,7 @@
 package quest.devinthebm.launcher.ui
 
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.view.LayoutInflater
 import android.view.View
@@ -32,6 +33,7 @@ class AppGridAdapter(
     private var gridHeightPx = 0
     private var columns = 1
     private var rows = 1
+    private var itemOverheadDp = ITEM_OVERHEAD_DP
 
     fun submit(list: List<AppInfo>) {
         items.clear()
@@ -42,14 +44,16 @@ class AppGridAdapter(
     /** Tells the icon-size clamp the grid's current content area and shape,
      * so a large icon-size preference can't overflow a column's width or push
      * the last of [rows] rows past the bottom of the grid on a small screen. */
-    fun setGridMetrics(widthPx: Int, heightPx: Int, columns: Int, rows: Int) {
+    fun setGridMetrics(widthPx: Int, heightPx: Int, columns: Int, rows: Int, itemOverheadDp: Int = ITEM_OVERHEAD_DP) {
         val coercedColumns = columns.coerceAtLeast(1)
         val coercedRows = rows.coerceAtLeast(1)
-        if (widthPx == gridWidthPx && heightPx == gridHeightPx && coercedColumns == this.columns && coercedRows == this.rows) return
+        if (widthPx == gridWidthPx && heightPx == gridHeightPx && coercedColumns == this.columns &&
+            coercedRows == this.rows && itemOverheadDp == this.itemOverheadDp) return
         gridWidthPx = widthPx
         gridHeightPx = heightPx
         this.columns = coercedColumns
         this.rows = coercedRows
+        this.itemOverheadDp = itemOverheadDp
         notifyDataSetChanged()
     }
 
@@ -70,14 +74,34 @@ class AppGridAdapter(
         private val notifDot: View = itemView.findViewById(R.id.notif_dot)
         fun bind(app: AppInfo) {
             val density = Resources.getSystem().displayMetrics.density
+            // GridLayoutManager sizes wrap-content rows to their contents,
+            // leaving much of the drawer unused in the compact 4x2 layout.
+            // Give landscape cells an equal share of the available grid height
+            // so both rows are distributed across the whole drawer.
+            itemView.layoutParams = itemView.layoutParams.apply {
+                height = if (
+                    itemView.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+                    gridHeightPx > 0 && rows > 0
+                ) gridHeightPx / rows else ViewGroup.LayoutParams.WRAP_CONTENT
+            }
             // Before the grid's first layout pass, gridWidthPx/gridHeightPx are
             // still 0 - fall back to a fixed size so icons aren't briefly
             // invisible; setGridMetrics rebinds with the real fit moments later.
-            val fitPx = baseFitIconPx(gridWidthPx, gridHeightPx, columns, density)
+            val fitPx = baseFitIconPx(gridWidthPx, gridHeightPx, columns, density, itemOverheadDp)
                 .takeIf { it > 0 } ?: (PRE_LAYOUT_FALLBACK_DP * density).toInt()
             val desiredPx = (fitPx * iconSizePercent / 100f).toInt()
-            val px = desiredPx.coerceAtMost(maxIconPx(density)).coerceAtLeast(0)
+            // A large landscape/tablet viewport can make the geometric fit
+            // enormous. Keep the default icon at the app-grid's normal 61dp
+            // size, while still honoring the user's percentage setting.
+            val preferredMaxPx = (NORMAL_ICON_MAX_DP * density * iconSizePercent / 100f).toInt()
+            val px = desiredPx.coerceAtMost(minOf(maxIconPx(density), preferredMaxPx)).coerceAtLeast(0)
             icon.layoutParams = icon.layoutParams.apply { width = px; height = px }
+            val isLandscape = itemView.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            val iconScale = if (isLandscape) LANDSCAPE_ICON_SCALE else 1f
+            itemView.findViewById<View>(R.id.icon_frame).apply {
+                scaleX = iconScale
+                scaleY = iconScale
+            }
             icon.setImageDrawable(app.icon)
             icon.contentDescription = app.label
             if (hasNotification(app)) {
@@ -105,7 +129,7 @@ class AppGridAdapter(
             if (gridWidthPx <= 0 || gridHeightPx <= 0) return Int.MAX_VALUE
             val cellWidth = gridWidthPx / columns
             val cellHeight = gridHeightPx / rows
-            val overheadPx = (ITEM_OVERHEAD_DP * density).toInt()
+            val overheadPx = (itemOverheadDp * density).toInt()
             return (minOf(cellWidth, cellHeight) - overheadPx).coerceAtLeast(0)
         }
     }
@@ -124,17 +148,26 @@ class AppGridAdapter(
         /** Used only before the grid's first layout pass, when there's no
          * real fit measurement yet to scale a percentage off of. */
         private const val PRE_LAYOUT_FALLBACK_DP = 61
+        private const val NORMAL_ICON_MAX_DP = 61
+        private const val LANDSCAPE_ICON_SCALE = 1.5f
 
         /** The icon pixel size that exactly fills a [GUARANTEED_ROWS]x[columns]
          * grid in [contentWidthPx]x[contentHeightPx] with no scrolling - the
          * 100% baseline that icon-size percentages scale from. Shared with
          * [AppDrawerActivity] so its page-size math stays in sync with this
          * adapter's icon clamp. */
-        fun baseFitIconPx(contentWidthPx: Int, contentHeightPx: Int, columns: Int, density: Float): Int {
-            if (contentWidthPx <= 0 || contentHeightPx <= 0 || columns <= 0) return 0
+        fun baseFitIconPx(
+            contentWidthPx: Int,
+            contentHeightPx: Int,
+            columns: Int,
+            density: Float,
+            itemOverheadDp: Int = ITEM_OVERHEAD_DP,
+            rows: Int = GUARANTEED_ROWS,
+        ): Int {
+            if (contentWidthPx <= 0 || contentHeightPx <= 0 || columns <= 0 || rows <= 0) return 0
             val cellWidth = contentWidthPx / columns
-            val cellHeight = contentHeightPx / GUARANTEED_ROWS
-            val overheadPx = (ITEM_OVERHEAD_DP * density).toInt()
+            val cellHeight = contentHeightPx / rows
+            val overheadPx = (itemOverheadDp * density).toInt()
             return (minOf(cellWidth, cellHeight) - overheadPx).coerceAtLeast(0)
         }
     }

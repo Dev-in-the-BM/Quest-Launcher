@@ -5,6 +5,7 @@
     <dimen name="clock_text">64sp</dimen>
     <dimen name="date_text">18sp</dimen>
     <dimen name="app_icon">61dp</dimen>
+    <dimen name="app_grid_item_overhead">36dp</dimen>
     <dimen name="list_icon">40dp</dimen>
     <dimen name="screen_title">25sp</dimen>
     <dimen name="page_dot_size">8dp</dimen>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="2dp"
+    android:clickable="true"
+    android:clipChildren="false"
+    android:defaultFocusHighlightEnabled="false"
+    android:focusable="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="4dp">
+
+    <FrameLayout
+        android:id="@+id/icon_frame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:duplicateParentState="true"
+        android:padding="4dp">
+
+        <ImageView
+            android:id="@+id/icon"
+            android:layout_width="@dimen/app_icon"
+            android:layout_height="@dimen/app_icon"
+            android:scaleType="fitCenter" />
+
+        <View
+            android:id="@+id/notif_dot"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="top|end"
+            android:background="@drawable/bg_badge_dot"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>

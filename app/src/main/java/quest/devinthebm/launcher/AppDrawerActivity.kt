@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.content.res.Configuration
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -208,19 +209,23 @@ class AppDrawerActivity : ThemedActivity() {
         val gridHeight = stableGridHeight
         if (gridWidth <= 0 || gridHeight <= 0) return
 
-        gridColumns = GRID_COLUMNS
         val contentWidth = gridWidth - grid.paddingStart - grid.paddingEnd
         val contentHeight = gridHeight - grid.paddingTop - grid.paddingBottom
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        gridColumns = if (landscape) LANDSCAPE_GRID_COLUMNS else GRID_COLUMNS
+        val rows = if (landscape) LANDSCAPE_GRID_ROWS else GRID_GUARANTEED_ROWS
+        (grid.layoutManager as? GridLayoutManager)?.spanCount = gridColumns
         val density = resources.displayMetrics.density
-        val fitIconPx = AppGridAdapter.baseFitIconPx(contentWidth, contentHeight, gridColumns, density)
+        val itemOverheadDp = (resources.getDimension(R.dimen.app_grid_item_overhead) / density).toInt()
+        val fitIconPx = AppGridAdapter.baseFitIconPx(contentWidth, contentHeight, gridColumns, density, itemOverheadDp, rows)
         val desiredIconPx = fitIconPx * prefs.getIconSizePercent() / 100
-        val itemHeightPx = desiredIconPx + (AppGridAdapter.ITEM_OVERHEAD_DP * density).toInt()
-        val rows = (contentHeight / itemHeightPx.coerceAtLeast(1)).coerceAtLeast(3)
-        pageSize = gridColumns * rows
+        val itemHeightPx = desiredIconPx + (itemOverheadDp * density).toInt()
+        val fittedRows = if (landscape) rows else (contentHeight / itemHeightPx.coerceAtLeast(1)).coerceAtLeast(rows)
+        pageSize = gridColumns * fittedRows
         // Below the floor of 3 rows, the icon-size clamp (not this page-size
         // math) is what actually keeps the grid from overflowing - it shrinks
         // icons to fit instead of forcing fewer, undersized rows.
-        gridAdapter.setGridMetrics(contentWidth, contentHeight, gridColumns, rows)
+        gridAdapter.setGridMetrics(contentWidth, contentHeight, gridColumns, fittedRows, itemOverheadDp)
     }
 
     private fun refresh() {
@@ -407,9 +412,11 @@ class AppDrawerActivity : ThemedActivity() {
                 gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
             }
             val params = gridFocusHighlight.layoutParams as FrameLayout.LayoutParams
-            val sizeChanged = params.width != iconFrame.width || params.height != iconFrame.height
-            params.width = iconFrame.width
-            params.height = iconFrame.height
+            val highlightWidth = (iconFrame.width * iconFrame.scaleX).toInt()
+            val highlightHeight = (iconFrame.height * iconFrame.scaleY).toInt()
+            val sizeChanged = params.width != highlightWidth || params.height != highlightHeight
+            params.width = highlightWidth
+            params.height = highlightHeight
             gridFocusHighlight.layoutParams = params
             gridFocusHighlight.animate().cancel()
             if (!gridFocusVisible || sizeChanged) {
@@ -693,6 +700,9 @@ class AppDrawerActivity : ThemedActivity() {
 
     companion object {
         private const val GRID_COLUMNS = 3
+        private const val LANDSCAPE_GRID_COLUMNS = 4
+        private const val LANDSCAPE_GRID_ROWS = 2
+        private const val GRID_GUARANTEED_ROWS = 3
         private const val PAGE_SIZE = 9
         private const val GRID_HIGHLIGHT_SLIDE_MS = 150L
         private const val T9_MULTITAP_TIMEOUT_MS = 1_000L
