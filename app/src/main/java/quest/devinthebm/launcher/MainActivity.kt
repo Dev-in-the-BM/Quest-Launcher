@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.KeyEvent
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -66,6 +67,8 @@ class MainActivity : ThemedActivity() {
     private lateinit var softKeys: SoftkeyController
     private lateinit var adapter: HomeRailAdapter
     private var railExpanded = false
+    private var activeRailKey: LauncherPrefs.HomeKey? = null
+    private var railHorizontal = false
     private var focusedRailIndex = 0
     private var displayedRailHighlightIndex = RecyclerView.NO_POSITION
     private var wheelAnimator: ValueAnimator? = null
@@ -151,13 +154,14 @@ class MainActivity : ThemedActivity() {
         rail.layoutManager = LinearLayoutManager(this)
         rail.adapter = adapter
         rail.itemAnimator = null
-        rail.doOnLayout {
-            val slot = (it.height - (24 * resources.displayMetrics.density).toInt()) / HomeRailAdapter.SLOTS_VISIBLE
+        rail.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            val extent = if (railHorizontal) view.width else view.height
+            val slot = (extent - (24 * resources.displayMetrics.density).toInt()) / HomeRailAdapter.SLOTS_VISIBLE
             if (slot > 0 && adapter.itemHeightPx != slot) {
-                val edge = (it.height - slot) / 2
-                it.setPadding(0, edge, 0, edge)
+                val edge = (extent - slot) / 2
+                if (railHorizontal) view.setPadding(edge, 0, edge, 0) else view.setPadding(0, edge, 0, edge)
                 adapter.setItemHeightPx(slot)
-                it.post {
+                view.post {
                     centerRailItem(railCenterPosition())
                     if (!railExpanded) focusAppMenu()
                 }
@@ -195,26 +199,6 @@ class MainActivity : ThemedActivity() {
                 (18 * resources.displayMetrics.density).toInt(),
                 0,
             )
-            // The center key opens the wheel with the middle icon selected.
-            // Right has no focusable target and is swallowed.
-            setOnKeyListener { _, keyCode, event ->
-                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-                when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        if (railExpanded) {
-                            closeRailAndFocusAppMenu()
-                        } else {
-                            openWheel()
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        if (railExpanded) closeRailAndFocusAppMenu()
-                        true
-                    }
-                    else -> false
-                }
-            }
             setOnFocusChangeListener { _, hasFocus -> if (hasFocus) setRailExpanded(false) }
         }
         softKeys = Softkeys.of(this).apply {
@@ -241,13 +225,15 @@ class MainActivity : ThemedActivity() {
         if (!expanded) clearRailHighlight()
         val density = resources.displayMetrics.density
         rail.animate()
-            .translationX(if (expanded) 0f else -CLOSED_RAIL_OFFSET_DP * density)
-            .setDuration(160)
+            .translationX(if (!railHorizontal && !expanded) (if (activeRailKey == LauncherPrefs.HomeKey.RIGHT) CLOSED_RAIL_OFFSET_DP else -CLOSED_RAIL_OFFSET_DP) * density else 0f)
+            .translationY(if (railHorizontal && !expanded) CLOSED_RAIL_OFFSET_DP * density else 0f)
+            .setDuration(220)
             .setInterpolator(DecelerateInterpolator())
             .start()
         findViewById<View>(R.id.home_clock_group).let { clockGroup ->
             val params = clockGroup.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-            params.marginStart = ((if (expanded) 8 else -44) * density).toInt()
+            params.marginStart = if (!railHorizontal && expanded && activeRailKey == LauncherPrefs.HomeKey.LEFT) (8 * density).toInt() else (if (activeRailKey == LauncherPrefs.HomeKey.LEFT) 8 * density else 0f).toInt()
+            params.marginEnd = if (!railHorizontal && expanded && activeRailKey == LauncherPrefs.HomeKey.RIGHT) (8 * density).toInt() else (if (activeRailKey == LauncherPrefs.HomeKey.RIGHT) 18 * density else 0f).toInt()
             clockGroup.layoutParams = params
         }
         updateWheelCurve()
@@ -269,6 +255,21 @@ class MainActivity : ThemedActivity() {
             }
         }
         val labelRow = bar.getChildAt(1) as? LinearLayout ?: return
+        // Yapchik's labels represent hardware softkeys, not D-pad focus stops.
+        // Keep the inserted center action focusable, but remove the bar and its
+        // label widgets from Android's ordinary focus traversal.
+        bar.isFocusable = false
+        bar.isFocusableInTouchMode = false
+        labelRow.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        fun disableFocus(view: View) {
+            if (view === appMenuButton) return
+            view.isFocusable = false
+            view.isFocusableInTouchMode = false
+            if (view is ViewGroup) {
+                for (index in 0 until view.childCount) disableFocus(view.getChildAt(index))
+            }
+        }
+        disableFocus(labelRow)
         // The spotlight draws well beyond the button and above the bar.
         // Yapchik clips its children by default, so let the light bloom out.
         bar.clipChildren = false
@@ -335,7 +336,7 @@ class MainActivity : ThemedActivity() {
 
     /** Detect rail swipes before allowing an icon to interpret the same gesture as a tap. */
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (::rail.isInitialized) {
+        if (::rail.isInitialized && rail.visibility == View.VISIBLE) {
             val density = resources.displayMetrics.density
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -343,23 +344,40 @@ class MainActivity : ThemedActivity() {
                     swipeStartY = event.rawY
                     val location = IntArray(2)
                     rail.getLocationOnScreen(location)
-                    val maxStartX = (if (railExpanded) 220 else 112) * density
-                    swipeEligible = event.rawX in 0f..maxStartX &&
-                        event.rawY >= location[1] && event.rawY <= location[1] + rail.height
+                    val edge = when {
+                        railHorizontal -> event.rawY >= location[1] - (if (railExpanded) 120 else 72) * density
+                        activeRailKey == LauncherPrefs.HomeKey.RIGHT -> event.rawX >= rail.width + location[0] - (if (railExpanded) 120 else 72) * density
+                        else -> event.rawX <= location[0] + (if (railExpanded) 120 else 72) * density
+                    }
+                    swipeEligible = edge &&
+                        event.rawX >= location[0] - (if (railExpanded) 140 else 60) * density &&
+                        event.rawX <= location[0] + rail.width + (if (railExpanded) 140 else 60) * density &&
+                        event.rawY >= location[1] - (if (railExpanded) 140 else 60) * density &&
+                        event.rawY <= location[1] + rail.height + (if (railExpanded) 140 else 60) * density
                     swipeCaptured = false
                 }
                 MotionEvent.ACTION_MOVE -> if (swipeEligible && !swipeCaptured) {
                     val dx = event.rawX - swipeStartX
                     val dy = event.rawY - swipeStartY
-                    if (kotlin.math.abs(dx) > 6f * density && kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
+                    val delta = if (railHorizontal) dy else dx
+                    val horizontalAxis = !railHorizontal
+                    if (kotlin.math.abs(delta) > 6f * density &&
+                        (if (horizontalAxis) kotlin.math.abs(dx) > kotlin.math.abs(dy) else kotlin.math.abs(dy) > kotlin.math.abs(dx))) {
                         MotionEvent.obtain(event).apply {
                             action = MotionEvent.ACTION_CANCEL
                             super.dispatchTouchEvent(this)
                             recycle()
                         }
                         swipeCaptured = true
-                        if (dx > 0 && !railExpanded) openWheel()
-                        else if (dx < 0 && railExpanded) closeRailAndFocusAppMenu()
+                        val opensToward = if (railHorizontal || activeRailKey == LauncherPrefs.HomeKey.RIGHT) -1f else 1f
+                        if (!railExpanded && delta * opensToward > 0) {
+                            if (!railHorizontal) activeRailKey = if (activeRailKey == LauncherPrefs.HomeKey.RIGHT) LauncherPrefs.HomeKey.RIGHT else LauncherPrefs.HomeKey.LEFT
+                            updateConfiguredRail(activeRailKey)
+                            openWheel()
+                        } else if (railExpanded && delta * opensToward < 0) {
+                            setRailExpanded(false)
+                            appMenuButton.requestFocus()
+                        }
                         return true
                     }
                 }
@@ -413,7 +431,7 @@ class MainActivity : ThemedActivity() {
         val slot = adapter.itemHeightPx
         if (slot <= 0) return
         val density = resources.displayMetrics.density
-        val center = rail.height / 2f
+        val center = (if (railHorizontal) rail.width else rail.height) / 2f
         // Reuse the original crescent track from before the wheel animation:
         // center +9dp, outer -5dp when closed (a slightly flatter crescent);
         // center +16dp, adjacent +12dp, outer 0dp when open. Derive it from
@@ -421,14 +439,17 @@ class MainActivity : ThemedActivity() {
         val verticalRadius = slot * 2.35f
         for (i in 0 until rail.childCount) {
             val row = rail.getChildAt(i)
-            val relativeY = (row.top + row.bottom) / 2f - center
+            val position = if (railHorizontal) (row.left + row.right) / 2f else (row.top + row.bottom) / 2f
+            val relativeY = position - center
             val normalizedY = (relativeY / verticalRadius).coerceIn(-0.98f, 0.98f)
             val depth = kotlin.math.sqrt(1f - normalizedY * normalizedY)
             val distance = kotlin.math.abs(relativeY) / slot
             val halfSpan = (distance / 2f).coerceIn(0f, 1f)
             val curve = 1f - halfSpan * halfSpan
             val circle = row.findViewById<View>(R.id.circle)
-            circle.translationX = (if (railExpanded) 16f * curve else -5f + 14f * curve) * density
+            val curveOffset = (if (railExpanded) 16f * curve else -5f + 14f * curve) * density
+            if (railHorizontal) circle.translationY = -curveOffset
+            else circle.translationX = curveOffset * if (activeRailKey == LauncherPrefs.HomeKey.RIGHT) -1f else 1f
             circle.scaleX = 0.72f + 0.28f * depth
             circle.scaleY = circle.scaleX
             circle.alpha = 0.42f + 0.58f * depth
@@ -507,8 +528,10 @@ class MainActivity : ThemedActivity() {
         val layout = rail.layoutManager as? LinearLayoutManager ?: return true
         val anchorIndex = layout.findFirstVisibleItemPosition()
         val anchor = layout.findViewByPosition(anchorIndex) ?: return true
-        val centerTop = (rail.height - adapter.itemHeightPx) / 2
-        val distance = anchor.top - centerTop + (target - anchorIndex) * adapter.itemHeightPx
+        val extent = if (railHorizontal) rail.width else rail.height
+        val anchorStart = if (railHorizontal) anchor.left else anchor.top
+        val centerStart = (extent - adapter.itemHeightPx) / 2
+        val distance = anchorStart - centerStart + (target - anchorIndex) * adapter.itemHeightPx
         wheelAnimator?.cancel()
         var previous = 0
         wheelAnimator = ValueAnimator.ofInt(0, distance).apply {
@@ -516,7 +539,7 @@ class MainActivity : ThemedActivity() {
             interpolator = DecelerateInterpolator()
             addUpdateListener { animation ->
                 val value = animation.animatedValue as Int
-                rail.scrollBy(0, value - previous)
+                if (railHorizontal) rail.scrollBy(value - previous, 0) else rail.scrollBy(0, value - previous)
                 previous = value
             }
             start()
@@ -537,19 +560,28 @@ class MainActivity : ThemedActivity() {
         }
         if (::rail.isInitialized && railExpanded && rail.hasFocus()) {
             val key = event.keyCode
+            val mapped = when (key) {
+                KeyEvent.KEYCODE_DPAD_UP -> LauncherPrefs.HomeKey.UP
+                KeyEvent.KEYCODE_DPAD_LEFT -> LauncherPrefs.HomeKey.LEFT
+                KeyEvent.KEYCODE_DPAD_RIGHT -> LauncherPrefs.HomeKey.RIGHT
+                KeyEvent.KEYCODE_DPAD_DOWN -> LauncherPrefs.HomeKey.DOWN
+                else -> null
+            }
+            if (event.action == KeyEvent.ACTION_DOWN && mapped == activeRailKey) {
+                performHomeKey(mapped!!)
+                return true
+            }
             if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN ||
                 key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER ||
                 key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_LEFT) {
                 if (event.action == KeyEvent.ACTION_DOWN) when (key) {
-                    KeyEvent.KEYCODE_DPAD_UP -> moveRailFocus(-1)
-                    KeyEvent.KEYCODE_DPAD_DOWN -> moveRailFocus(1)
+                    KeyEvent.KEYCODE_DPAD_UP -> { if (!railHorizontal) moveRailFocus(-1) }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> { if (!railHorizontal) moveRailFocus(1) }
                     KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER ->
                         (rail.layoutManager as? LinearLayoutManager)
                             ?.findViewByPosition(focusedRailIndex)?.performClick()
-                    KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        closeRailAndFocusAppMenu()
-                    }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> closeRailAndFocusAppMenu()
+                    KeyEvent.KEYCODE_DPAD_LEFT -> { if (railHorizontal) moveRailFocus(-1) }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> { if (railHorizontal) moveRailFocus(1) }
                 }
                 return true
             }
@@ -568,6 +600,7 @@ class MainActivity : ThemedActivity() {
             },
         )
         updateClock()
+        updateConfiguredRail()
         refreshShortcuts()
         softKeys.invalidate()
         findViewById<ViewGroup>(android.R.id.content).post {
@@ -689,25 +722,74 @@ class MainActivity : ThemedActivity() {
 
     private fun openAppDrawer() = startActivity(Intent(this, AppDrawerActivity::class.java))
 
-    private fun updateConfiguredRail() {
+    private fun updateConfiguredRail(preferredKey: LauncherPrefs.HomeKey? = null) {
         if (!::rail.isInitialized) return
-        val railKey = listOf(LauncherPrefs.HomeKey.LEFT, LauncherPrefs.HomeKey.RIGHT, LauncherPrefs.HomeKey.DOWN)
-            .firstOrNull { prefs.getHomeKeyAction(it) == LauncherPrefs.HomeKeyAction.RAIL }
+        val railKeys = listOf(LauncherPrefs.HomeKey.LEFT, LauncherPrefs.HomeKey.RIGHT, LauncherPrefs.HomeKey.DOWN)
+            .filter { prefs.getHomeKeyAction(it) == LauncherPrefs.HomeKeyAction.RAIL }
+        val railKey = preferredKey?.takeIf { it in railKeys }
+            ?: activeRailKey?.takeIf { it in railKeys }
+            ?: railKeys.firstOrNull()
+        if (!railExpanded && railKey != null) activeRailKey = railKey
         rail.visibility = if (railKey == null) View.GONE else View.VISIBLE
-        if (railKey != null) {
-            val params = rail.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-            val rightSide = railKey == LauncherPrefs.HomeKey.RIGHT
-            params.startToStart = if (rightSide) -1 else androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-            params.endToEnd = if (rightSide) androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID else -1
-            rail.layoutParams = params
-            rail.scaleX = if (rightSide) -1f else 1f
+        railHorizontal = railKey == LauncherPrefs.HomeKey.DOWN
+        val params = rail.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        params.width = if (railHorizontal) ViewGroup.LayoutParams.MATCH_PARENT else (84 * resources.displayMetrics.density).toInt()
+        params.height = if (railHorizontal) (84 * resources.displayMetrics.density).toInt() else 0
+        params.startToStart = if (railKey == LauncherPrefs.HomeKey.LEFT || railHorizontal || railKey == null) androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID else -1
+        params.endToEnd = if (railKey == LauncherPrefs.HomeKey.RIGHT || railHorizontal) androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID else -1
+        params.topToTop = if (railHorizontal) -1 else androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+        params.bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+        if (railHorizontal) {
+            params.bottomMargin = findSoftkeyBar()?.height ?: params.bottomMargin
+            params.topMargin = 0
+        } else {
+            params.bottomMargin = findSoftkeyBar()?.height ?: 0
+            params.topMargin = 0
         }
+        rail.layoutParams = params
+        findViewById<View>(R.id.home_clock_group).let { clockGroup ->
+            val clockParams = clockGroup.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            val rightSide = railKey == LauncherPrefs.HomeKey.RIGHT
+            if (rightSide) {
+                clockParams.startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                clockParams.startToEnd = -1
+                clockParams.endToStart = R.id.shortcuts_rail
+                clockParams.endToEnd = -1
+            } else {
+                clockParams.startToEnd = if (railKey == LauncherPrefs.HomeKey.LEFT) R.id.shortcuts_rail else -1
+                clockParams.startToStart = if (railKey == LauncherPrefs.HomeKey.LEFT) -1 else androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                clockParams.endToStart = -1
+                clockParams.endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            }
+            clockGroup.layoutParams = clockParams
+            (clockGroup as? android.widget.LinearLayout)?.gravity =
+                if (rightSide) Gravity.START else Gravity.END
+            listOf(R.id.ampm, R.id.clock, R.id.weekday, R.id.date_line).forEach { id ->
+                findViewById<TextView>(id).gravity = if (rightSide) Gravity.START else Gravity.END
+            }
+            findViewById<View>(R.id.notif_row).let { row ->
+                (row as? android.widget.LinearLayout)?.gravity =
+                    (if (rightSide) Gravity.START else Gravity.END) or Gravity.CENTER_VERTICAL
+            }
+        }
+        rail.layoutManager = LinearLayoutManager(this, if (railHorizontal) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL, false)
+        rail.translationX = if (!railHorizontal && railKey != null) (if (railKey == LauncherPrefs.HomeKey.RIGHT) CLOSED_RAIL_OFFSET_DP else -CLOSED_RAIL_OFFSET_DP) * resources.displayMetrics.density else 0f
+        rail.translationY = if (railHorizontal) CLOSED_RAIL_OFFSET_DP * resources.displayMetrics.density else 0f
+        if (::adapter.isInitialized) adapter.setOrientation(railHorizontal)
     }
 
     private fun performHomeKey(key: LauncherPrefs.HomeKey) {
         when (prefs.getHomeKeyAction(key)) {
             LauncherPrefs.HomeKeyAction.APP -> prefs.getHomeKeyApp(key)?.let(::launchAppByKey)
-            LauncherPrefs.HomeKeyAction.RAIL -> if (railExpanded) setRailExpanded(false) else openWheel()
+            LauncherPrefs.HomeKeyAction.RAIL -> {
+                if (railExpanded && activeRailKey == key) {
+                    closeRailAndFocusAppMenu()
+                } else {
+                    activeRailKey = key
+                    updateConfiguredRail(key)
+                    openWheel()
+                }
+            }
             LauncherPrefs.HomeKeyAction.FAVORITES -> startActivity(Intent(this, FavoritesActivity::class.java))
             LauncherPrefs.HomeKeyAction.NOTIFICATIONS -> openNotifications()
         }

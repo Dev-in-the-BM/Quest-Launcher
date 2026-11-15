@@ -31,6 +31,14 @@ class HomeRailAdapter(
     /** Slot height in px so exactly [SLOTS_VISIBLE] rows fit the rail without scrolling. */
     var itemHeightPx = -1
         private set
+    private var horizontal = false
+
+    fun setOrientation(horizontal: Boolean) {
+        if (this.horizontal == horizontal) return
+        this.horizontal = horizontal
+        itemHeightPx = -1
+        notifyDataSetChanged()
+    }
 
     fun submit(list: List<RailItem>) {
         items.clear()
@@ -62,7 +70,9 @@ class HomeRailAdapter(
         private val notifDot: View = itemView.findViewById(R.id.notif_dot)
 
         fun bind(item: RailItem) {
-            if (itemHeightPx > 0) itemView.layoutParams = itemView.layoutParams.apply { height = itemHeightPx }
+            if (itemHeightPx > 0) itemView.layoutParams = itemView.layoutParams.apply {
+                if (horizontal) width = itemHeightPx else height = itemHeightPx
+            }
             val app = item.app
             if (app != null) {
                 // The icon is already shaped (and given a background, if any)
