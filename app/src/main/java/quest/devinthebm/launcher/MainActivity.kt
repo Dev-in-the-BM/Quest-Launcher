@@ -23,6 +23,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AlertDialog
 import quest.devinthebm.launcher.theme.ThemedActivity
+import quest.devinthebm.launcher.theme.ThemeDescriptor
+import quest.devinthebm.launcher.theme.LauncherComponentSelection
 import androidx.core.view.doOnLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -50,6 +52,12 @@ import java.util.Locale
  * The center dots open All Apps; long-pressing them opens launcher Options.
  */
 class MainActivity : ThemedActivity() {
+
+    override fun activityThemeStyle(descriptor: ThemeDescriptor): Int =
+        when (descriptor.components) {
+            LauncherComponentSelection.KaiOS -> R.style.Theme_QuestLauncher_Home
+            LauncherComponentSelection.Material2 -> R.style.Theme_QuestLauncher_Home_Material2
+        }
 
     private lateinit var prefs: LauncherPrefs
     private lateinit var rail: RecyclerView

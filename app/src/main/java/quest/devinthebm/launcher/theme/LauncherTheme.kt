@@ -80,10 +80,12 @@ abstract class ThemedActivity : androidx.appcompat.app.AppCompatActivity() {
     private var appliedThemeId: ThemeId? = null
     protected val launcherTheme get() = LauncherThemeCatalog.resolve(ThemeSelection.current(quest.devinthebm.launcher.data.LauncherPrefs(this)).id)
 
+    protected open fun activityThemeStyle(descriptor: ThemeDescriptor) = descriptor.styleRes
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         val descriptor = ThemeSelection.current(quest.devinthebm.launcher.data.LauncherPrefs(this))
         appliedThemeId = descriptor.id
-        setTheme(descriptor.styleRes)
+        setTheme(activityThemeStyle(descriptor))
         super.onCreate(savedInstanceState)
         descriptor.presentation?.configureActivity(this)
     }

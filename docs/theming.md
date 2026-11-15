@@ -2,7 +2,7 @@
 
 Quest Launcher ships KaiOS and Material 2 presentations in the same APK. The
 KaiOS presentation remains the default for existing installs and for unknown
-stored IDs. Users choose a presentation in **Launcher Settings → Theme**.
+stored IDs. Users choose a presentation in **Options → Appearance → Theme**.
 
 ## Architecture
 
@@ -25,14 +25,28 @@ stored IDs. Users choose a presentation in **Launcher Settings → Theme**.
 
 ## Presentation behavior
 
+- Both Home presentations show the device wallpaper behind the clock and
+  shortcuts, with a window-level scrim for legibility. `MainActivity` selects a
+  Home-specific style at runtime because `ThemedActivity` otherwise replaces
+  the manifest theme; preserve `windowShowWallpaper` in every Home style.
 - KaiOS keeps its existing wallpaper, accent, and focus behavior.
-- Material 2 uses the device's day/night configuration, a solid Home surface,
+- Material 2 uses the device's day/night configuration, a transparent Home
+  surface over the wallpaper,
   Material 2 semantic colors, and themed list/drawer/search/dialog/popup and
   Yapchik softkey presentation.
+- The Material 2 light Home surface is standard white. Home clock, date, and
+  notification-count text use no drop shadow in this presentation; the KaiOS
+  wallpaper-oriented shadows remain unchanged. Keep foreground styling suited
+  to its surface so text remains crisp and legible.
 - Material 2 focus is a neutral-grey shade behind the selected control or app
-  icon, with a stronger shade for pressed state. Do not tint/recolor app-owned
-  icons, and do not draw a focus frame. KaiOS focus remains on its existing
-  resource path.
+  icon, with the app-drawer highlight extending 4dp beyond the icon frame on
+  each side to give icons breathing room. Do not tint/recolor app-owned icons,
+  and do not draw a focus frame. KaiOS focus remains on its existing resource
+  path.
+
+When changing theme colors or foreground treatment, follow Android's
+[color guidance](https://developer.android.com/design/ui/mobile/guides/styles/color):
+use semantic color roles and check foreground/background contrast.
 
 ## Verification
 
