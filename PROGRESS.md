@@ -1,5 +1,10 @@
 ## Current state
 
+- **Home rail focus and D-pad behavior (Nov 17, 2026):**
+  - The rail focus surface now has roughly 10dp of space around its icon, matching the app drawer's focus-tile padding as the rail's tighter layout allows. Aeris uses a 50%-opacity rail-specific dark fill so the surface reads correctly over Home wallpaper; it is a focus surface, not a decorative halo.
+  - In the expanded vertical rail, either D-pad Left or D-pad Right closes the rail and returns focus to the app menu, regardless of which side opened it.
+  - `./gradlew assembleDebug` passes; the latest debug APK was installed on HIT serial `KHV1A12012022A01903`.
+
 - **App drawer responsiveness and D-pad focus (Nov 17, 2026):**
   - `QuestLauncherApplication` starts resolving app labels/icons on a single background executor while Home is visible. `AppRepository` shares an in-flight preload with drawer requests, caches apps by component, and invalidates the cache after package or icon-setting changes.
   - The drawer avoids rebinding its grid/list twice during refresh, and tracks the focused adapter position through the focused view hierarchy so D-pad movement stays on the intended row/column and across pages. Home also retains its rail `LayoutManager` when its orientation is unchanged.

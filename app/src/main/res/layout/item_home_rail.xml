@@ -13,8 +13,8 @@
         android:layout_gravity="center"
         android:clipChildren="false">
 
-        <!-- This is scaled relative to the icon container in code, so its halo
-             stays proportional for every configured icon shape and icon pack. -->
+        <!-- Expanded to give the focus surface the same breathing room as the
+             app drawer's focus tile. -->
         <View
             android:id="@+id/selection_highlight"
             android:layout_width="match_parent"

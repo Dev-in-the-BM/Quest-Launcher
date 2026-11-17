@@ -29,4 +29,5 @@
     <color name="aeris_divider">#3C4043</color>
     <color name="aeris_focus_fill">#5F6368</color>
     <color name="aeris_row_focus">#484A4D</color>
+    <color name="aeris_rail_focus_fill">#80484A4D</color>
 </resources>

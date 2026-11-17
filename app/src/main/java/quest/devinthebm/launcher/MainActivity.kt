@@ -466,10 +466,16 @@ class MainActivity : ThemedActivity() {
             circle.scaleY = 1f
             circle.alpha = 1f
             row.findViewById<View>(R.id.selection_highlight).apply {
-                // A multiplier, not a fixed size: it remains 18% larger than
-                // whichever icon shape/size is rendered in this slot.
-                scaleX = 1.18f
-                scaleY = 1.18f
+                // The drawer focus tile extends about 10dp beyond the icon on
+                // each side (6dp frame padding + 4dp outer inset). Match that
+                // spacing around the rail's 54dp icon container.
+                val focusScale = if (circle.width > 0) {
+                    (circle.width + 20f * density) / circle.width
+                } else {
+                    1f
+                }
+                scaleX = focusScale
+                scaleY = focusScale
                 // A newly attached target (after a scroll) needs the current
                 // selection state, but normal focus moves are handled by
                 // setRailHighlight so their old/new halos can cross-fade.
@@ -578,6 +584,11 @@ class MainActivity : ThemedActivity() {
                 KeyEvent.KEYCODE_DPAD_RIGHT -> LauncherPrefs.HomeKey.RIGHT
                 KeyEvent.KEYCODE_DPAD_DOWN -> LauncherPrefs.HomeKey.DOWN
                 else -> null
+            }
+            if (event.action == KeyEvent.ACTION_DOWN && !railHorizontal &&
+                (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+                closeRailAndFocusAppMenu()
+                return true
             }
             if (event.action == KeyEvent.ACTION_DOWN && mapped == activeRailKey) {
                 performHomeKey(mapped!!)

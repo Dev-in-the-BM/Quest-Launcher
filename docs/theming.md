@@ -55,6 +55,12 @@ Theme**.
   search fields 14dp, and utility rows a 56dp minimum height. Screen titles are
   28sp. These are Aeris-only resources and styles; do not alter M2 tokens or
   KaiOS styling to implement Aeris.
+- The Home rail uses a separate Aeris focus fill with 50% opacity because its
+  selected surface extends over wallpaper beyond the icon and otherwise reads
+  much darker than the drawer focus in device screenshots. Its focus tile uses
+  18dp corners and extends about 10dp beyond the rail icon, matching the
+  drawer tile's breathing room as closely as the tighter rail allows. Keep
+  this a focused-item surface, not a decorative halo.
 
 When changing theme colors or foreground treatment, follow Android's
 [color guidance](https://developer.android.com/design/ui/mobile/guides/styles/color):

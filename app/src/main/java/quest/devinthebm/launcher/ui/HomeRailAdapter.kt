@@ -81,17 +81,16 @@ class HomeRailAdapter(
                 icon.scaleType = ImageView.ScaleType.FIT_CENTER
                 icon.clearColorFilter()
                 icon.setImageDrawable(app.icon)
-                // Match the app drawer: the focus shape takes its color from
-                // the icon it sits behind, rather than using the global accent.
-                selectionHighlight.background = SquircleDrawable(
-                    NotificationDotColor.forIcon(app.key, app.icon),
-                )
                 val attrs = itemView.context.obtainStyledAttributes(intArrayOf(R.attr.launcherRailFocusBackground))
                 try {
                     if (attrs.getResourceId(0, 0) == R.drawable.m2_rail_focus) {
                         selectionHighlight.setBackgroundResource(R.drawable.m2_rail_focus)
                     } else if (attrs.getResourceId(0, 0) == R.drawable.aeris_rail_focus) {
                         selectionHighlight.setBackgroundResource(R.drawable.aeris_rail_focus)
+                    } else {
+                        // KaiOS drawer items use the accent-filled bg_item_focus
+                        // selector; keep the home rail's focus treatment identical.
+                        selectionHighlight.setBackgroundResource(R.drawable.bg_item_focus)
                     }
                 } finally {
                     attrs.recycle()
