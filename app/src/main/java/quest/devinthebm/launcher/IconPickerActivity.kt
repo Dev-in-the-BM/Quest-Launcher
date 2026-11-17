@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import quest.devinthebm.launcher.data.BuiltInIcons
 import quest.devinthebm.launcher.data.IconPackRepository
+import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
 import quest.devinthebm.launcher.ui.IconGridAdapter
 import com.theonionsarewatching.yapchik.Softkeys
@@ -110,6 +111,7 @@ class IconPickerActivity : ThemedActivity() {
     private fun applyIcon(name: String) {
         val pack = currentPack ?: return
         prefs.setIconOverride(appKey, pack, name)
+        AppRepository.invalidateCache()
         Toast.makeText(this, R.string.icon_picker_applied, Toast.LENGTH_SHORT).show()
         finish()
     }

@@ -4,6 +4,8 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
 import android.content.res.Configuration
 import android.view.KeyEvent
 import android.view.View
@@ -88,6 +90,7 @@ class AppDrawerActivity : ThemedActivity() {
     // measured for this activity configuration.
     private var stableGridHeight = 0
     private var pendingGridFocusPosition = RecyclerView.NO_POSITION
+    private var lastFocusedGridPosition = 0
     private var t9Overlay: TextView? = null
     private var t9BackgroundAnimator: android.animation.ValueAnimator? = null
     private var lastT9Key = KeyEvent.KEYCODE_UNKNOWN
@@ -163,6 +166,8 @@ class AppDrawerActivity : ThemedActivity() {
             // Labels are gone from the grid; mirror the focused app's name
             // where "All Apps" normally sits so it's still identifiable.
             onFocusChanged = { app, itemView ->
+                val position = grid.getChildAdapterPosition(itemView)
+                if (position != RecyclerView.NO_POSITION) lastFocusedGridPosition = position
                 titleView.text = app.label
                 showGridFocusHighlight(app, itemView)
             },
@@ -241,14 +246,20 @@ class AppDrawerActivity : ThemedActivity() {
     }
 
     private fun refresh() {
+        val refreshStartedAt = SystemClock.elapsedRealtime()
         Thread {
             val apps = AppRepository.getVisibleApps(this, prefs)
             if (isDestroyed) return@Thread
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
+                if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+                    Log.i(PERF_TAG, "drawer received ${apps.size} apps in ${SystemClock.elapsedRealtime() - refreshStartedAt}ms")
+                }
                 allApps = apps
-                applySearch()
-                if (searchQuery.isNotEmpty()) return@runOnUiThread
+                if (searchQuery.isNotEmpty()) {
+                    applySearch()
+                    return@runOnUiThread
+                }
                 if (listMode) {
                     bindList()
                 } else {
@@ -398,6 +409,7 @@ class AppDrawerActivity : ThemedActivity() {
      * (the top row) instead of leaving the request pending.
      */
     private fun focusItemAt(target: Int) {
+        lastFocusedGridPosition = target
         val lm = grid.layoutManager ?: return
         lm.findViewByPosition(target)?.let {
             pendingGridFocusPosition = RecyclerView.NO_POSITION
@@ -652,9 +664,13 @@ class AppDrawerActivity : ThemedActivity() {
     // --------------------------------------------------------------- Actions
 
     private fun focusedPosition(): Int {
-        val child = grid.focusedChild ?: return 0
-        val pos = grid.getChildAdapterPosition(child)
-        return if (pos == RecyclerView.NO_POSITION) 0 else pos
+        var focusedView = grid.findFocus()
+        while (focusedView != null && focusedView.parent !== grid) {
+            focusedView = focusedView.parent as? View
+        }
+        val position = focusedView?.let(grid::getChildAdapterPosition) ?: RecyclerView.NO_POSITION
+        if (position != RecyclerView.NO_POSITION) lastFocusedGridPosition = position
+        return lastFocusedGridPosition.coerceIn(0, (currentPageItems.size - 1).coerceAtLeast(0))
     }
 
     private fun openFocused() {
@@ -705,12 +721,14 @@ class AppDrawerActivity : ThemedActivity() {
 
     private fun resetIcon(app: AppInfo) {
         prefs.clearIconOverride(app.key)
+        AppRepository.invalidateCache()
         Toast.makeText(this, R.string.icon_picker_reset, Toast.LENGTH_SHORT).show()
         refresh()
     }
 
     private fun toggleIconWrap(app: AppInfo, enabled: Boolean) {
         prefs.setIconWrapEnabled(app.key, enabled)
+        AppRepository.invalidateCache()
         refresh()
     }
 
@@ -800,6 +818,7 @@ class AppDrawerActivity : ThemedActivity() {
     }
 
     companion object {
+        private const val PERF_TAG = "QuestPerf"
         private const val GRID_COLUMNS = 3
         private const val LANDSCAPE_GRID_COLUMNS = 4
         private const val LANDSCAPE_GRID_ROWS = 2

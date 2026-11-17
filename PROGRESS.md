@@ -1,5 +1,12 @@
 ## Current state
 
+- **App drawer responsiveness and D-pad focus (Nov 17, 2026):**
+  - `QuestLauncherApplication` starts resolving app labels/icons on a single background executor while Home is visible. `AppRepository` shares an in-flight preload with drawer requests, caches apps by component, and invalidates the cache after package or icon-setting changes.
+  - The drawer avoids rebinding its grid/list twice during refresh, and tracks the focused adapter position through the focused view hierarchy so D-pad movement stays on the intended row/column and across pages. Home also retains its rail `LayoutManager` when its orientation is unchanged.
+  - Removed a redundant package-launch-intent lookup for launcher activities while resolving their icons.
+  - `./gradlew assembleDebug` passes; installed on DOOV/HIT serial `KHV1A12012022A01903`. D-pad right/down/up and app activation were exercised on-device; the phone was left awake on the All Apps drawer.
+  - Debug timing on this device: a cold package/icon scan of 41 entries took about 2.65 s; the drawer waited about 1.85 s for the in-flight scan in that cold-launch test. With the cache warm, drawer data retrieval was about 30 ms. A first open immediately after process start can therefore still wait for preload; subsequent opens use the in-memory cache.
+
 - Restored the historical open crescent offsets in `MainActivity.updateWheelCurve()` and flattened the closed crescent slightly (center +9dp, outer -5dp); retained wheel depth/selection animation.
 - Aligned the collapsed rail's initial XML translation with its runtime offset.
 - Moved the app-grid control into Yapchik's bar row rather than over it.

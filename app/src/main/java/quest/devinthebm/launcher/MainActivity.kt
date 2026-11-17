@@ -784,7 +784,11 @@ class MainActivity : ThemedActivity() {
                     (if (rightSide) Gravity.START else Gravity.END) or Gravity.CENTER_VERTICAL
             }
         }
-        rail.layoutManager = LinearLayoutManager(this, if (railHorizontal) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL, false)
+        val orientation = if (railHorizontal) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
+        val currentLayoutManager = rail.layoutManager as? LinearLayoutManager
+        if (currentLayoutManager?.orientation != orientation) {
+            rail.layoutManager = LinearLayoutManager(this, orientation, false)
+        }
         rail.translationX = if (!railHorizontal && railKey != null) (if (railKey == LauncherPrefs.HomeKey.RIGHT) CLOSED_RAIL_OFFSET_DP else -CLOSED_RAIL_OFFSET_DP) * resources.displayMetrics.density else 0f
         rail.translationY = if (railHorizontal) CLOSED_RAIL_OFFSET_DP * resources.displayMetrics.density else 0f
         if (::adapter.isInitialized) adapter.setOrientation(railHorizontal)

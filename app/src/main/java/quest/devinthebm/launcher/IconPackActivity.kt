@@ -4,6 +4,7 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.widget.Toast
 import quest.devinthebm.launcher.data.IconPackRepository
+import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
 import quest.devinthebm.launcher.ui.ListRowAdapter
 import quest.devinthebm.launcher.ui.Row
@@ -68,6 +69,7 @@ class IconPackActivity : BaseListActivity() {
     private fun pick(position: Int) {
         val entry = entries.getOrNull(position) ?: return
         prefs.setActiveIconPack(entry.packageName)
+        AppRepository.invalidateCache()
         Toast.makeText(
             this,
             if (entry.packageName == null) getString(R.string.icon_pack_reset)

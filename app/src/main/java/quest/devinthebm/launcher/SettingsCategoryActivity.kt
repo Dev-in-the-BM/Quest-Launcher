@@ -85,6 +85,7 @@ class SettingsCategoryActivity : BaseListActivity() {
             Setting(getString(R.string.settings_icon_shape), CATEGORY_APPEARANCE) { chooseIconShape() },
             Setting(getString(R.string.settings_icon_background), CATEGORY_APPEARANCE) {
                 prefs.setLegacyIconBackgroundEnabled(!prefs.isLegacyIconBackgroundEnabled())
+                AppRepository.invalidateCache()
                 refreshRows()
             },
             Setting(getString(R.string.settings_notif_access), CATEGORY_NOTIFICATIONS) { openNotificationAccessSettings() },
@@ -305,6 +306,7 @@ class SettingsCategoryActivity : BaseListActivity() {
             .setSingleChoiceItems(labels, checked) { dialog, which ->
                 val shape = options[which]
                 prefs.setIconShape(shape)
+                AppRepository.invalidateCache()
                 Toast.makeText(this, getString(R.string.settings_icon_shape_set, labels[which]), Toast.LENGTH_SHORT).show()
                 refreshRows()
                 dialog.dismiss()

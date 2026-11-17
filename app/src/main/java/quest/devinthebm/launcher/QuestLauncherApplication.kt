@@ -1,11 +1,23 @@
 package quest.devinthebm.launcher
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import com.theonionsarewatching.yapchik.SoftkeyMode
 import com.theonionsarewatching.yapchik.Yapchik
+import quest.devinthebm.launcher.data.AppRepository
 
 class QuestLauncherApplication : Application() {
+    private val packageChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            AppRepository.invalidateCache()
+            AppRepository.preload(this@QuestLauncherApplication)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -22,5 +34,18 @@ class QuestLauncherApplication : Application() {
             textSizeSp = 15f
             horizontalPaddingDp = 18
         }
+        // Resolve labels/icons while Home is shown, not after the drawer opens.
+        AppRepository.preload(this)
+        ContextCompat.registerReceiver(
+            this,
+            packageChangeReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addAction(Intent.ACTION_PACKAGE_CHANGED)
+                addDataScheme("package")
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
     }
 }

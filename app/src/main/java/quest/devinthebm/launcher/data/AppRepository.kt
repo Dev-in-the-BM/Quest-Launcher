@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.os.SystemClock
+import android.util.Log
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 /**
  * Reads launchable apps and individual activities from [PackageManager] and
@@ -12,14 +16,57 @@ import android.graphics.drawable.Drawable
  * the list is always fresh after installs/uninstalls.
  */
 object AppRepository {
+    private val preloadExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var preloadedApps: List<AppInfo>? = null
+    @Volatile private var preloadedByKey: Map<String, AppInfo> = emptyMap()
+    @Volatile private var cacheGeneration = 0
+    @Volatile private var preloadFuture: CompletableFuture<List<AppInfo>>? = null
+
+    /** Resolve app labels and icons while Home is visible, before the drawer opens. */
+    @Synchronized fun preload(context: Context) {
+        if (preloadedApps != null) return
+        if (preloadFuture != null) return
+        val appContext = context.applicationContext
+        val generation = cacheGeneration
+        val future = CompletableFuture<List<AppInfo>>()
+        preloadFuture = future
+        preloadExecutor.execute {
+            try {
+                val apps = getAllApps(appContext)
+                synchronized(this) {
+                    if (generation == cacheGeneration && preloadedApps == null) cacheApps(apps)
+                    if (preloadFuture === future) preloadFuture = null
+                }
+                future.complete(apps)
+            } catch (error: Throwable) {
+                synchronized(this) {
+                    if (preloadFuture === future) preloadFuture = null
+                }
+                future.completeExceptionally(error)
+            }
+        }
+    }
+
+    @Synchronized fun invalidateCache() {
+        cacheGeneration++
+        preloadedApps = null
+        preloadedByKey = emptyMap()
+        preloadFuture = null
+    }
+
+    private fun cacheApps(apps: List<AppInfo>) {
+        preloadedByKey = apps.associateBy { it.key }
+        preloadedApps = apps
+    }
 
     /** Every launchable app except this launcher itself, sorted by label. */
     @Suppress("DEPRECATION") // int-flags overload kept for minSdk 21 compatibility
     fun getAllApps(context: Context): List<AppInfo> {
+        val startedAt = SystemClock.elapsedRealtime()
         val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val self = context.packageName
-        return pm.queryIntentActivities(intent, 0)
+        val apps = pm.queryIntentActivities(intent, 0)
             .asSequence()
             .mapNotNull { ri ->
                 val ai = ri.activityInfo ?: return@mapNotNull null
@@ -29,17 +76,37 @@ object AppRepository {
                     label = ri.loadLabel(pm).toString(),
                     packageName = ai.packageName,
                     activityName = ai.name,
-                    icon = resolveIcon(context, key, ri.loadIcon(pm)),
+                    // This result is already the package's launcher entry;
+                    // resolving its launch intent again for the deep-activity
+                    // icon fallback only adds another PackageManager lookup.
+                    icon = resolveIcon(context, key, ri.loadIcon(pm), includePackageOverride = false),
                 )
             }
             .sortedBy { it.label.lowercase() }
             .toList()
+        if (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            Log.i(PERF_TAG, "app scan ${apps.size} entries in ${SystemClock.elapsedRealtime() - startedAt}ms")
+        }
+        return apps
     }
 
     /** Apps shown to the user (hidden ones removed). */
     fun getVisibleApps(context: Context, prefs: LauncherPrefs): List<AppInfo> {
+        val apps = preloadedApps ?: run {
+            val generation = cacheGeneration
+            val pending = preloadFuture
+            val loaded = try {
+                pending?.join() ?: getAllApps(context)
+            } catch (_: RuntimeException) {
+                getAllApps(context)
+            }
+            synchronized(this) {
+                if (generation == cacheGeneration && preloadedApps == null) cacheApps(loaded)
+            }
+            preloadedApps ?: loaded
+        }
         val hidden = prefs.getHiddenKeys()
-        return getAllApps(context).filter { it.key !in hidden }
+        return apps.filter { it.key !in hidden }
     }
 
     /**
@@ -75,6 +142,7 @@ object AppRepository {
      * [AppInfo], or null if it no longer exists.
      */
     fun resolveComponent(context: Context, key: String): AppInfo? {
+        preloadedByKey[key]?.let { return it }
         val component = ComponentName.unflattenFromString(key) ?: return null
         val pm = context.packageManager
         return try {
@@ -96,9 +164,14 @@ object AppRepository {
      * pack's mapping for [componentKey] if it has one, else [fallback] — then
      * masks the result into the user's chosen icon shape.
      */
-    private fun resolveIcon(context: Context, componentKey: String, fallback: Drawable): Drawable {
+    private fun resolveIcon(
+        context: Context,
+        componentKey: String,
+        fallback: Drawable,
+        includePackageOverride: Boolean = true,
+    ): Drawable {
         val prefs = LauncherPrefs(context)
-        val raw = rawIcon(context, prefs, componentKey, fallback)
+        val raw = rawIcon(context, prefs, componentKey, fallback, includePackageOverride)
         return IconShapeRenderer.render(
             context = context,
             source = raw,
@@ -108,8 +181,15 @@ object AppRepository {
         )
     }
 
-    private fun rawIcon(context: Context, prefs: LauncherPrefs, componentKey: String, fallback: Drawable): Drawable {
-        val override = prefs.getIconOverride(componentKey) ?: packageIconOverride(context, prefs, componentKey)
+    private fun rawIcon(
+        context: Context,
+        prefs: LauncherPrefs,
+        componentKey: String,
+        fallback: Drawable,
+        includePackageOverride: Boolean,
+    ): Drawable {
+        val override = prefs.getIconOverride(componentKey)
+            ?: if (includePackageOverride) packageIconOverride(context, prefs, componentKey) else null
         override?.let { (pack, name) ->
             val drawable = if (pack == BuiltInIcons.PACK_ID) {
                 BuiltInIcons.loadIcon(context, name)
@@ -151,4 +231,6 @@ object AppRepository {
             .setComponent(component)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
+
+    private const val PERF_TAG = "QuestPerf"
 }
