@@ -8,10 +8,12 @@ import android.os.SystemClock
 import android.util.Log
 import android.content.res.Configuration
 import android.view.KeyEvent
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -109,7 +111,13 @@ class AppDrawerActivity : ThemedActivity() {
         setContentView(R.layout.activity_app_drawer)
 
         grid = findViewById(R.id.apps_grid)
-        titleView = findViewById(R.id.title)
+        titleView = TextView(this).apply {
+            gravity = Gravity.CENTER
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            textSize = 14f
+            setTextColor(Color.WHITE)
+        }
         searchField = findViewById(R.id.app_search)
         if (launcherTheme.components != quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) {
             searchField.setBackgroundResource(
@@ -163,8 +171,6 @@ class AppDrawerActivity : ThemedActivity() {
         gridAdapter = AppGridAdapter(
             onClick = { launchAppByKey(it.key) },
             onLongClick = { showContextMenu(it) },
-            // Labels are gone from the grid; mirror the focused app's name
-            // where "All Apps" normally sits so it's still identifiable.
             onFocusChanged = { app, itemView ->
                 val position = grid.getChildAdapterPosition(itemView)
                 if (position != RecyclerView.NO_POSITION) lastFocusedGridPosition = position
@@ -315,6 +321,10 @@ class AppDrawerActivity : ThemedActivity() {
         bar.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
         bar.setBackgroundColor(Color.TRANSPARENT)
         val labelRow = bar.getChildAt(1) as? ViewGroup ?: return
+        if (titleView.parent !== labelRow) {
+            (titleView.parent as? ViewGroup)?.removeView(titleView)
+            labelRow.addView(titleView, 1, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        }
         labelRow.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
         fun styleLabels(view: View) {
             if (view is TextView) {
@@ -822,7 +832,7 @@ class AppDrawerActivity : ThemedActivity() {
         private const val GRID_COLUMNS = 3
         private const val LANDSCAPE_GRID_COLUMNS = 4
         private const val LANDSCAPE_GRID_ROWS = 2
-        private const val GRID_GUARANTEED_ROWS = 3
+        private const val GRID_GUARANTEED_ROWS = 4
         private const val PAGE_SIZE = 9
         private const val GRID_HIGHLIGHT_SLIDE_MS = 150L
         private const val T9_MULTITAP_TIMEOUT_MS = 1_000L

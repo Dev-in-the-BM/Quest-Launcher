@@ -1,5 +1,7 @@
 ## Current state
 
+- Completed (Nov 24, 2026): app drawer title/grid layout and Home clock/notification layout refinements. Build and on-device visual verification passed; detailed implementation notes are in `CLAUDE.md`.
+
 - **Home rail focus and D-pad behavior (Nov 17, 2026):**
   - The rail focus surface now has roughly 10dp of space around its icon, matching the app drawer's focus-tile padding as the rail's tighter layout allows. Aeris uses a 50%-opacity rail-specific dark fill so the surface reads correctly over Home wallpaper; it is a focus surface, not a decorative halo.
   - In the expanded vertical rail, either D-pad Left or D-pad Right closes the rail and returns focus to the app menu, regardless of which side opened it.

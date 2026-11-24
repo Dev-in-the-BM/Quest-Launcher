@@ -79,7 +79,6 @@ class MainActivity : ThemedActivity() {
     private var swipeEligible = false
     private var swipeCaptured = false
     private lateinit var clock: TextView
-    private lateinit var ampm: TextView
     private lateinit var weekday: TextView
     private lateinit var dateLine: TextView
     private lateinit var notifCallsGroup: View
@@ -89,7 +88,6 @@ class MainActivity : ThemedActivity() {
     private lateinit var notifOtherGroup: View
     private lateinit var notifOtherCount: TextView
 
-    private val ampmFmt = SimpleDateFormat("a", Locale.getDefault())
     private val time12 = SimpleDateFormat("h:mm", Locale.getDefault())
     private val time24 = SimpleDateFormat("HH:mm", Locale.getDefault())
     private val weekdayFmt = SimpleDateFormat("EEEE", Locale.getDefault())
@@ -134,7 +132,6 @@ class MainActivity : ThemedActivity() {
         setContentView(R.layout.activity_main)
 
         clock = findViewById(R.id.clock)
-        ampm = findViewById(R.id.ampm)
         weekday = findViewById(R.id.weekday)
         dateLine = findViewById(R.id.date_line)
         notifCallsGroup = findViewById(R.id.notif_calls_group)
@@ -242,12 +239,6 @@ class MainActivity : ThemedActivity() {
             .setDuration(220)
             .setInterpolator(DecelerateInterpolator())
             .start()
-        findViewById<View>(R.id.home_clock_group).let { clockGroup ->
-            val params = clockGroup.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-            params.marginStart = if (!railHorizontal && expanded && activeRailKey == LauncherPrefs.HomeKey.LEFT) (8 * density).toInt() else (if (activeRailKey == LauncherPrefs.HomeKey.LEFT) 8 * density else 0f).toInt()
-            params.marginEnd = if (!railHorizontal && expanded && activeRailKey == LauncherPrefs.HomeKey.RIGHT) (8 * density).toInt() else (if (activeRailKey == LauncherPrefs.HomeKey.RIGHT) 18 * density else 0f).toInt()
-            clockGroup.layoutParams = params
-        }
         updateWheelCurve()
     }
 
@@ -661,15 +652,8 @@ class MainActivity : ThemedActivity() {
 
     private fun updateClock() {
         val now = Date()
-        if (android.text.format.DateFormat.is24HourFormat(this)) {
-            ampm.visibility = TextView.GONE
-            clock.text = time24.format(now)
-        } else {
-            ampm.visibility = TextView.VISIBLE
-            ampm.text = ampmFmt.format(now)
-            clock.text = time12.format(now)
-        }
-        weekday.text = weekdayFmt.format(now)
+        clock.text = if (android.text.format.DateFormat.is24HourFormat(this)) time24.format(now) else time12.format(now)
+        weekday.text = "${weekdayFmt.format(now)},"
         dateLine.text = dateFmt.format(now)
     }
 
@@ -770,31 +754,6 @@ class MainActivity : ThemedActivity() {
             params.topMargin = 0
         }
         rail.layoutParams = params
-        findViewById<View>(R.id.home_clock_group).let { clockGroup ->
-            val clockParams = clockGroup.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-            val rightSide = railKey == LauncherPrefs.HomeKey.RIGHT
-            if (rightSide) {
-                clockParams.startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-                clockParams.startToEnd = -1
-                clockParams.endToStart = R.id.shortcuts_rail
-                clockParams.endToEnd = -1
-            } else {
-                clockParams.startToEnd = if (railKey == LauncherPrefs.HomeKey.LEFT) R.id.shortcuts_rail else -1
-                clockParams.startToStart = if (railKey == LauncherPrefs.HomeKey.LEFT) -1 else androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-                clockParams.endToStart = -1
-                clockParams.endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-            }
-            clockGroup.layoutParams = clockParams
-            (clockGroup as? android.widget.LinearLayout)?.gravity =
-                if (rightSide) Gravity.START else Gravity.END
-            listOf(R.id.ampm, R.id.clock, R.id.weekday, R.id.date_line).forEach { id ->
-                findViewById<TextView>(id).gravity = if (rightSide) Gravity.START else Gravity.END
-            }
-            findViewById<View>(R.id.notif_row).let { row ->
-                (row as? android.widget.LinearLayout)?.gravity =
-                    (if (rightSide) Gravity.START else Gravity.END) or Gravity.CENTER_VERTICAL
-            }
-        }
         val orientation = if (railHorizontal) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
         val currentLayoutManager = rail.layoutManager as? LinearLayoutManager
         if (currentLayoutManager?.orientation != orientation) {

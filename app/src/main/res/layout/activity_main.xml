@@ -26,103 +26,108 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Big clock + date, right-aligned. Every line is single-line and auto-sizes
-         so it never wraps, regardless of screen width / aspect ratio. -->
+    <!-- One centered translucent island: time, date, and notification counts. -->
     <LinearLayout
         android:id="@+id/home_clock_group"
-        android:layout_width="0dp"
+        android:layout_width="176dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_marginTop="32dp"
-        android:layout_marginEnd="18dp"
-        android:gravity="end"
+        android:gravity="center"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/shortcuts_rail"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/ampm"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:singleLine="true"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="1"
-            android:shadowRadius="6"
-            android:textColor="?attr/launcherPrimaryText"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/clock"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="-4dp"
-            app:autoSizeMaxTextSize="76sp"
-            app:autoSizeMinTextSize="34sp"
-            app:autoSizeStepGranularity="2sp"
-            app:autoSizeTextType="uniform"
-            android:fontFamily="sans-serif-light"
-            android:gravity="end"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="8"
-            android:textColor="?attr/launcherPrimaryText"
-            android:textSize="76sp" />
-
-        <TextView
-            android:id="@+id/weekday"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            app:autoSizeMaxTextSize="20sp"
-            app:autoSizeMinTextSize="12sp"
-            app:autoSizeStepGranularity="1sp"
-            app:autoSizeTextType="uniform"
-            android:gravity="end"
-            android:letterSpacing="0.04"
-            android:maxLines="1"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="1"
-            android:shadowRadius="6"
-            android:textAllCaps="true"
-            android:textColor="?attr/launcherPrimaryText"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/date_line"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:autoSizeMaxTextSize="20sp"
-            app:autoSizeMinTextSize="12sp"
-            app:autoSizeStepGranularity="1sp"
-            app:autoSizeTextType="uniform"
-            android:gravity="end"
-            android:letterSpacing="0.04"
-            android:maxLines="1"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="1"
-            android:shadowRadius="6"
-            android:textAllCaps="true"
-            android:textColor="?attr/launcherPrimaryText"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
         <LinearLayout
-            android:id="@+id/notif_row"
+            android:id="@+id/clock_island"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="end|center_vertical"
-            android:orientation="horizontal">
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_clock_island_segment"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="5dp">
+
+                <TextView
+                    android:id="@+id/clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:autoSizeMaxTextSize="42sp"
+                    app:autoSizeMinTextSize="30sp"
+                    app:autoSizeStepGranularity="2sp"
+                    app:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="0"
+                    android:shadowDy="2"
+                    android:shadowRadius="8"
+                    android:textColor="?attr/launcherPrimaryText"
+                    android:textSize="42sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_clock_island_segment"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="5dp">
+
+                <TextView
+                    android:id="@+id/weekday"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="6"
+                    android:textColor="?attr/launcherPrimaryText"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/date_line"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="6"
+                    android:textColor="?attr/launcherPrimaryText"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/notif_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_clock_island_segment"
+                android:gravity="end|center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="5dp">
 
             <LinearLayout
                 android:id="@+id/notif_calls_group"
@@ -208,6 +213,7 @@
                     android:textColor="?attr/launcherPrimaryText"
                     android:textSize="15sp"
                     android:textStyle="bold" />
+            </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

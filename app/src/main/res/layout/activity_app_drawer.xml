@@ -5,18 +5,6 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
-        android:text="@string/title_all_apps"
-        android:textColor="?attr/launcherPrimaryText"
-        android:textSize="?attr/launcherScreenTitleSize"
-        android:textStyle="bold" />
-
     <FrameLayout
         android:id="@+id/drawer_content"
         android:layout_width="match_parent"

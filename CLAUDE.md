@@ -75,6 +75,47 @@
 - No README screenshots exist yet; `README.md` has placeholder callouts
   (📸) marking where they should go.
 
+## Home clock and app drawer layout (Nov 24, 2026)
+
+### Requested behavior
+
+- Remove the large focused-app title from the App Drawer and show the focused
+  app name centered between the bottom Options and Search softkeys.
+- Use a portrait 3-column by 4-row drawer grid.
+- Center a compact Home clock/date/notification presentation horizontally,
+  with separate rounded translucent segments and no enclosing background.
+
+### Implementation
+
+- `AppDrawerActivity.kt` creates a single-line, ellipsized 14sp focused-app
+  label and inserts it at index 1 of Yapchik `SoftkeyBar`'s label row. Yapchik
+  exposes left/right labels but no center-slot API, so the label uses a weighted
+  (`width=0`, `weight=1`) middle child. Focus changes update the label.
+- Removed the standalone title view from `activity_app_drawer.xml`. Portrait
+  grid sizing guarantees four rows while retaining three columns; landscape
+  remains four columns by two rows.
+- `activity_main.xml` uses a fixed 176dp-wide clock group constrained to both
+  horizontal parent edges to keep it centered. Time, date, and notifications
+  each have their own translucent rounded segment, using
+  `bg_clock_island_segment.xml` (`#99585858`, 10dp corners, no stroke). There
+  is no outer island fill or border.
+- Time is 42sp with auto-size down to 30sp. The date row places the weekday
+  (including its trailing comma) beside the date. Notification content wraps
+  to its own compact segment. Segment vertical padding is 5dp; time/date
+  horizontal padding is 12dp and notification padding is 10dp.
+- `MainActivity.kt` removes the AM/PM view and formatting/binding; time
+  continues to follow the system 12/24-hour setting. It formats the weekday
+  with a trailing comma and no longer shifts the clock group in response to
+  Home rail positioning.
+
+### Verification
+
+- `./gradlew :app:assembleDebug` passed and `git diff --check` was clean.
+- Installed successfully on DOOV/HIT serial `KHV1A12012022A01903`. Screenshots
+  verified the portrait 3×4 drawer with the focused app centered in the softkey
+  row and the centered segmented Home clock/date/notification layout. The phone
+  was left awake on `MainActivity`.
+
 ## Current UI task history and status (Nov 10, 2026)
 
 This repository is being worked on in the Linux workspace
