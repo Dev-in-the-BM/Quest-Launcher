@@ -69,7 +69,7 @@ class IconPackActivity : BaseListActivity() {
     private fun pick(position: Int) {
         val entry = entries.getOrNull(position) ?: return
         prefs.setActiveIconPack(entry.packageName)
-        AppRepository.invalidateCache()
+        AppRepository.invalidateIcons(this)
         Toast.makeText(
             this,
             if (entry.packageName == null) getString(R.string.icon_pack_reset)

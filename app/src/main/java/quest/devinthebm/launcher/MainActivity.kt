@@ -9,7 +9,10 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import java.io.Closeable
+import android.os.SystemClock
 import android.provider.ContactsContract
+import android.util.Log
 import android.view.KeyEvent
 import android.view.Gravity
 import android.view.MotionEvent
@@ -101,6 +104,10 @@ class MainActivity : ThemedActivity() {
 
     /** The accent color applied this onCreate, so [onResume] can detect a change and [recreate]. */
     private var appliedAccentColor: LauncherPrefs.AccentColor? = null
+    private var homeCreatedAt = 0L
+    private var homeFirstDrawLogged = false
+    private var catalogSubscription: Closeable? = null
+    private var catalogGeneration = -1
 
     private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && pendingIndex >= 0) {
@@ -125,11 +132,26 @@ class MainActivity : ThemedActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        homeCreatedAt = SystemClock.elapsedRealtime()
         prefs = LauncherPrefs(this)
         val accent = prefs.getAccentColor()
         appliedAccentColor = accent
         if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS && accent.themeOverlayRes != 0) theme.applyStyle(accent.themeOverlayRes, true)
         setContentView(R.layout.activity_main)
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            val decor = window.decorView
+            val firstDrawListener = object : android.view.ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    if (!homeFirstDrawLogged) {
+                        homeFirstDrawLogged = true
+                        Log.i(PERF_TAG, "home first pre-draw from onCreate ${SystemClock.elapsedRealtime() - homeCreatedAt}ms")
+                    }
+                    if (decor.viewTreeObserver.isAlive) decor.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+            }
+            decor.viewTreeObserver.addOnPreDrawListener(firstDrawListener)
+        }
 
         clock = findViewById(R.id.clock)
         weekday = findViewById(R.id.weekday)
@@ -633,6 +655,23 @@ class MainActivity : ThemedActivity() {
         if (prefs.getAccentColor() != appliedAccentColor) recreate()
     }
 
+    override fun onStart() {
+        super.onStart()
+        catalogGeneration = AppRepository.getSnapshot()?.generation ?: catalogGeneration
+        catalogSubscription = AppRepository.observeCatalog { snapshot ->
+            if (snapshot.generation > catalogGeneration && !isDestroyed) {
+                catalogGeneration = snapshot.generation
+                refreshShortcuts()
+            }
+        }
+    }
+
+    override fun onStop() {
+        catalogSubscription?.close()
+        catalogSubscription = null
+        super.onStop()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -783,7 +822,7 @@ class MainActivity : ThemedActivity() {
 
     private fun keyLabel(key: LauncherPrefs.HomeKey): String =
         if (prefs.getHomeKeyAction(key) == LauncherPrefs.HomeKeyAction.APP)
-            prefs.getHomeKeyApp(key)?.let { AppRepository.resolveComponent(this, it)?.label }
+            prefs.getHomeKeyApp(key)?.let { AppRepository.resolveLabel(this, it) }
                 ?: getString(prefs.getHomeKeyAction(key).labelRes)
         else getString(prefs.getHomeKeyAction(key).labelRes)
 
@@ -839,13 +878,13 @@ class MainActivity : ThemedActivity() {
 
     private fun leftKeyLabel(): String {
         val key = prefs.getLeftKeyApp()
-        return key?.let { AppRepository.resolveComponent(this, it)?.label }
+        return key?.let { AppRepository.resolveLabel(this, it) }
             ?: getString(R.string.softkey_notifications)
     }
 
     private fun rightKeyLabel(): String {
         val key = prefs.getRightKeyApp()
-        return key?.let { AppRepository.resolveComponent(this, it)?.label }
+        return key?.let { AppRepository.resolveLabel(this, it) }
             ?: getString(R.string.softkey_contacts)
     }
 
@@ -933,6 +972,7 @@ class MainActivity : ThemedActivity() {
     }
 
     companion object {
+        private const val PERF_TAG = "QuestPerf"
         // Shown at most once per process so we don't nag on every resume.
         private var defaultPromptShown = false
         const val RAIL_HIGHLIGHT_FADE_MS = 180L

@@ -2,6 +2,7 @@ package quest.devinthebm.launcher
 
 import android.content.Intent
 import android.os.Bundle
+import java.io.Closeable
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import quest.devinthebm.launcher.data.AppInfo
 import quest.devinthebm.launcher.data.AppRepository
@@ -20,6 +21,8 @@ class AppPickerActivity : BaseListActivity() {
 
     private lateinit var adapter: ListRowAdapter
     private var apps: List<AppInfo> = emptyList()
+    private var catalogSubscription: Closeable? = null
+    private var catalogGeneration = -1
 
     private val activityPicker = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -44,6 +47,12 @@ class AppPickerActivity : BaseListActivity() {
         }
 
         loadApps()
+        catalogSubscription = AppRepository.observeCatalog { snapshot ->
+            if (snapshot.generation > catalogGeneration && !isDestroyed) {
+                catalogGeneration = snapshot.generation
+                displayApps(snapshot.apps)
+            }
+        }
     }
 
     private fun loadApps() {
@@ -52,11 +61,30 @@ class AppPickerActivity : BaseListActivity() {
             if (isDestroyed) return@Thread
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
-                apps = loaded
-                adapter.submit(loaded.map { Row(title = it.label, icon = it.icon) })
-                focusFirst()
+                AppRepository.getSnapshot()?.let { catalogGeneration = maxOf(catalogGeneration, it.generation) }
+                displayApps(loaded)
             }
         }.start()
+    }
+
+    private fun displayApps(loaded: List<AppInfo>) {
+        apps = loaded
+        adapter.submit(loaded.map { Row(title = it.label, icon = it.icon) })
+        focusFirst()
+        AppRepository.requestIcons(this, loaded, AppRepository.VISIBLE_ICON_PRIORITY) { hydrated ->
+            runOnUiThread {
+                val index = apps.indexOfFirst { it.key == hydrated.key }
+                if (!isDestroyed && index >= 0) {
+                    apps = apps.toMutableList().also { it[index] = hydrated }
+                    adapter.updateRow(index, Row(title = hydrated.label, icon = hydrated.icon))
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        catalogSubscription?.close()
+        super.onDestroy()
     }
 
     private fun pick(position: Int) {

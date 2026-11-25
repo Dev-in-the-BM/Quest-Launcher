@@ -17,6 +17,7 @@ import android.widget.LinearLayout
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import java.io.Closeable
 import androidx.appcompat.widget.PopupMenu
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AlertDialog
@@ -98,12 +99,27 @@ class AppDrawerActivity : ThemedActivity() {
     private var lastT9Key = KeyEvent.KEYCODE_UNKNOWN
     private var t9LetterIndex = 0
     private var lastT9PressAt = 0L
+    private var refreshGeneration = 0
+    private var catalogSubscription: Closeable? = null
+    private var catalogGeneration = -1
+    private var drawerStartedAt = 0L
+    private var metadataReadyLogged = false
+    private var populatedPreDrawLogged = false
+    private var firstPageFocusedLogged = false
+    private var firstPageIconsLogged = false
+    private var allIconsLogged = false
+    private var backgroundHydrationStarted = false
+    private var initialPageKeys: Set<String> = emptySet()
+    private val iconReadyCallback: (AppInfo) -> Unit = { app ->
+        runOnUiThread { onAppIconReady(app) }
+    }
 
     /** The accent color applied this onCreate, so [onResume] can detect a change and [recreate]. */
     private var appliedAccentColor: LauncherPrefs.AccentColor? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        drawerStartedAt = SystemClock.elapsedRealtime()
         prefs = LauncherPrefs(this)
         val accent = prefs.getAccentColor()
         appliedAccentColor = accent
@@ -176,6 +192,10 @@ class AppDrawerActivity : ThemedActivity() {
                 if (position != RecyclerView.NO_POSITION) lastFocusedGridPosition = position
                 titleView.text = app.label
                 showGridFocusHighlight(app, itemView)
+                if (!firstPageFocusedLogged && currentPage == 0 && initialPageKeys.isNotEmpty()) {
+                    firstPageFocusedLogged = true
+                    logPerf("drawer first page focused in ${SystemClock.elapsedRealtime() - drawerStartedAt}ms")
+                }
             },
             iconSizePercent = prefs.getIconSizePercent(),
             hasNotification = ::hasNotification,
@@ -199,16 +219,35 @@ class AppDrawerActivity : ThemedActivity() {
         setDrawerSoftkeys(searchAction = "Search") {
             toggleSearch(showKeyboard = true)
         }
+        catalogSubscription = AppRepository.observeCatalog { snapshot ->
+            if (snapshot.generation > catalogGeneration && !isDestroyed) {
+                catalogGeneration = snapshot.generation
+                val hidden = prefs.getHiddenKeys()
+                deliverApps(
+                    snapshot.apps.filterNot { it.key in hidden },
+                    ++refreshGeneration,
+                    SystemClock.elapsedRealtime(),
+                )
+            }
+        }
+        logPerf("drawer onCreate complete ${SystemClock.elapsedRealtime() - drawerStartedAt}ms")
     }
 
     override fun onResume() {
         super.onResume()
+        logPerf("drawer onResume at ${SystemClock.elapsedRealtime() - drawerStartedAt}ms")
         if (prefs.getAccentColor() != appliedAccentColor) {
             recreate()
             return
         }
         applyViewMode()
         refresh()
+    }
+
+    override fun onDestroy() {
+        catalogSubscription?.close()
+        AppRepository.cancelIconRequests(iconReadyCallback)
+        super.onDestroy()
     }
 
     /** Swap layout manager/adapter to match the current Launcher Settings choice. */
@@ -253,27 +292,133 @@ class AppDrawerActivity : ThemedActivity() {
 
     private fun refresh() {
         val refreshStartedAt = SystemClock.elapsedRealtime()
+        val requestGeneration = ++refreshGeneration
+        // The catalog is warmed while Home is visible. Bind that immutable,
+        // in-memory snapshot now rather than paying thread-start + main-queue
+        // latency before the drawer's first frame.
+        AppRepository.getCachedVisibleApps(prefs)?.let { cachedApps ->
+            catalogGeneration = AppRepository.getSnapshot()?.generation ?: catalogGeneration
+            deliverApps(cachedApps, requestGeneration, refreshStartedAt)
+            return
+        }
         Thread {
             val apps = AppRepository.getVisibleApps(this, prefs)
             if (isDestroyed) return@Thread
             runOnUiThread {
-                if (isDestroyed) return@runOnUiThread
-                if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
-                    Log.i(PERF_TAG, "drawer received ${apps.size} apps in ${SystemClock.elapsedRealtime() - refreshStartedAt}ms")
-                }
-                allApps = apps
-                if (searchQuery.isNotEmpty()) {
-                    applySearch()
-                    return@runOnUiThread
-                }
-                if (listMode) {
-                    bindList()
-                } else {
-                    val maxPage = (totalPages() - 1).coerceAtLeast(0)
-                    bindPage(currentPage.coerceIn(0, maxPage))
-                }
+                deliverApps(apps, requestGeneration, refreshStartedAt)
             }
         }.start()
+    }
+
+    private fun deliverApps(
+        apps: List<AppInfo>,
+        requestGeneration: Int,
+        refreshStartedAt: Long,
+    ) {
+        if (isDestroyed || requestGeneration != refreshGeneration) return
+        if (!metadataReadyLogged) {
+            metadataReadyLogged = true
+            logPerf(
+                "drawer metadata ready ${apps.size} apps in ${SystemClock.elapsedRealtime() - drawerStartedAt}ms " +
+                    "(request=${SystemClock.elapsedRealtime() - refreshStartedAt}ms)",
+            )
+        }
+        allApps = apps
+        if (searchQuery.isNotEmpty()) {
+            applySearch()
+            return
+        }
+        if (listMode) {
+            bindList()
+        } else {
+            val maxPage = (totalPages() - 1).coerceAtLeast(0)
+            bindPage(currentPage.coerceIn(0, maxPage))
+        }
+        if (!populatedPreDrawLogged) {
+            val observer = grid.viewTreeObserver
+            val listener = object : android.view.ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    if (observer.isAlive) observer.removeOnPreDrawListener(this)
+                    if (!populatedPreDrawLogged && !isDestroyed && allApps.isNotEmpty()) {
+                        populatedPreDrawLogged = true
+                        logPerf(
+                            "drawer populated pre-draw ${SystemClock.elapsedRealtime() - drawerStartedAt}ms " +
+                                "(bind=${SystemClock.elapsedRealtime() - refreshStartedAt}ms)",
+                        )
+                    }
+                    return true
+                }
+            }
+            observer.addOnPreDrawListener(listener)
+        }
+    }
+
+    private fun requestBackgroundIconHydration() {
+        if (backgroundHydrationStarted) return
+        backgroundHydrationStarted = true
+        AppRepository.requestIcons(
+            context = this,
+            apps = allApps,
+            priority = AppRepository.BACKGROUND_ICON_PRIORITY,
+            onIconReady = iconReadyCallback,
+        )
+    }
+
+    private fun onAppIconReady(app: AppInfo) {
+        if (isDestroyed) return
+        val allIndex = allApps.indexOfFirst { it.key == app.key }
+        if (allIndex >= 0 && !allApps[allIndex].iconResolved) {
+            allApps = allApps.toMutableList().also { it[allIndex] = app }
+        }
+        val visibleIndex = currentPageItems.indexOfFirst { it.key == app.key }
+        if (visibleIndex >= 0 && !currentPageItems[visibleIndex].iconResolved) {
+            currentPageItems = currentPageItems.toMutableList().also { it[visibleIndex] = app }
+            if (listMode) {
+                listAdapter.updateRow(
+                    visibleIndex,
+                    Row(
+                        title = app.label,
+                        icon = app.icon,
+                        keepWhiteTitle = true,
+                        badgeColor = if (hasNotification(app)) NotificationDotColor.forIcon(app.key, app.icon) else null,
+                    ),
+                )
+            } else {
+                gridAdapter.updateAppAt(visibleIndex, app)
+                if (focusedPosition() == visibleIndex) {
+                    grid.layoutManager?.findViewByPosition(visibleIndex)?.let { showGridFocusHighlight(app, it) }
+                }
+            }
+        }
+
+        if (!firstPageIconsLogged && initialPageKeys.isNotEmpty() &&
+            initialPageKeys.all { key -> allApps.firstOrNull { it.key == key }?.iconResolved == true }
+        ) {
+            firstPageIconsLogged = true
+            logPerf("drawer first page icons ready in ${SystemClock.elapsedRealtime() - drawerStartedAt}ms")
+        }
+        maybeStartBackgroundHydration()
+        if (!allIconsLogged && allApps.isNotEmpty() && allApps.all { it.iconResolved }) {
+            allIconsLogged = true
+            logPerf("drawer all icons ready in ${SystemClock.elapsedRealtime() - drawerStartedAt}ms")
+        }
+    }
+
+    private fun maybeStartBackgroundHydration() {
+        if (initialPageKeys.isEmpty()) return
+        if (initialPageKeys.all { key -> allApps.firstOrNull { it.key == key }?.iconResolved == true }) {
+            if (!firstPageIconsLogged) {
+                firstPageIconsLogged = true
+                logPerf("drawer first page icons ready in ${SystemClock.elapsedRealtime() - drawerStartedAt}ms")
+            }
+            requestBackgroundIconHydration()
+        }
+    }
+
+    private fun logPerf(message: String) {
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            Log.i(PERF_TAG, message)
+        }
     }
 
     private fun toggleSearch(showKeyboard: Boolean = true, initialQuery: String? = null) {
@@ -346,10 +491,30 @@ class AppDrawerActivity : ThemedActivity() {
         val source = matchingApps()
         currentPage = 0
         currentPageItems = source
+        if (initialPageKeys.isEmpty()) {
+            initialPageKeys = source.take(pageSize).mapTo(LinkedHashSet()) { it.key }
+        }
         if (listMode) {
-            listAdapter.submit(source.map { Row(title = it.label, icon = it.icon, keepWhiteTitle = true, badgeColor = if (hasNotification(it)) NotificationDotColor.forIcon(it.key, it.icon) else null) })
+            listAdapter.submit(
+                source.map {
+                    Row(
+                        title = it.label,
+                        icon = it.icon,
+                        keepWhiteTitle = true,
+                        badgeColor = if (!hasNotification(it)) null
+                        else if (it.iconResolved) NotificationDotColor.forIcon(it.key, it.icon) else Color.RED,
+                    )
+                },
+            )
             pageIndicator.visibility = View.GONE
             if (source.isNotEmpty() && !searchField.hasFocus()) grid.post { focusItemAt(0) }
+            AppRepository.requestIcons(
+                this,
+                source.take(pageSize),
+                AppRepository.VISIBLE_ICON_PRIORITY,
+                iconReadyCallback,
+            )
+            maybeStartBackgroundHydration()
         } else {
             bindPage(0)
         }
@@ -369,17 +534,28 @@ class AppDrawerActivity : ThemedActivity() {
     /** Bind the full app list in one go - no pages, no dots, just a normal scroll. */
     private fun bindList(focusPosition: Int? = null) {
         currentPageItems = matchingApps()
+        if (initialPageKeys.isEmpty()) {
+            initialPageKeys = currentPageItems.take(pageSize).mapTo(LinkedHashSet()) { it.key }
+        }
         listAdapter.submit(
             currentPageItems.map {
                 Row(
                     title = it.label,
                     icon = it.icon,
                     keepWhiteTitle = true,
-                    badgeColor = if (hasNotification(it)) NotificationDotColor.forIcon(it.key, it.icon) else null,
+                    badgeColor = if (!hasNotification(it)) null
+                    else if (it.iconResolved) NotificationDotColor.forIcon(it.key, it.icon) else Color.RED,
                 )
             },
         )
         pageIndicator.visibility = View.GONE
+        AppRepository.requestIcons(
+            this,
+            currentPageItems.take(pageSize),
+            AppRepository.VISIBLE_ICON_PRIORITY,
+            iconReadyCallback,
+        )
+        maybeStartBackgroundHydration()
         grid.post {
             if (searchField.hasFocus()) return@post
             if (currentPageItems.isEmpty()) return@post
@@ -396,6 +572,16 @@ class AppDrawerActivity : ThemedActivity() {
         val end = min(start + pageSize, apps.size)
         currentPageItems = if (start < end) apps.subList(start, end) else emptyList()
         gridAdapter.submit(currentPageItems)
+        if (initialPageKeys.isEmpty() && page == 0) {
+            initialPageKeys = currentPageItems.mapTo(LinkedHashSet()) { it.key }
+        }
+        AppRepository.requestIcons(
+            this,
+            currentPageItems,
+            AppRepository.VISIBLE_ICON_PRIORITY,
+            iconReadyCallback,
+        )
+        maybeStartBackgroundHydration()
 
         val pages = totalPages()
         pageIndicator.visibility = if (pages > 1) View.VISIBLE else View.GONE
@@ -453,7 +639,9 @@ class AppDrawerActivity : ThemedActivity() {
             val left = iconLocation[0] - parentLocation[0] + inset
             val top = iconLocation[1] - parentLocation[1] + inset
             if (launcherTheme.components == quest.devinthebm.launcher.theme.LauncherComponentSelection.KaiOS) {
-                gridFocusDrawable.setColor(NotificationDotColor.forIcon(app.key, app.icon))
+                gridFocusDrawable.setColor(
+                    if (app.iconResolved) NotificationDotColor.forIcon(app.key, app.icon) else Color.RED,
+                )
             }
             val params = gridFocusHighlight.layoutParams as FrameLayout.LayoutParams
             val highlightWidth = ((iconFrame.width - inset * 2) * iconFrame.scaleX).toInt()
@@ -731,14 +919,14 @@ class AppDrawerActivity : ThemedActivity() {
 
     private fun resetIcon(app: AppInfo) {
         prefs.clearIconOverride(app.key)
-        AppRepository.invalidateCache()
+        AppRepository.invalidateIcons(this)
         Toast.makeText(this, R.string.icon_picker_reset, Toast.LENGTH_SHORT).show()
         refresh()
     }
 
     private fun toggleIconWrap(app: AppInfo, enabled: Boolean) {
         prefs.setIconWrapEnabled(app.key, enabled)
-        AppRepository.invalidateCache()
+        AppRepository.invalidateIcons(this)
         refresh()
     }
 

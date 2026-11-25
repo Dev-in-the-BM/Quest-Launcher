@@ -2,6 +2,7 @@ package quest.devinthebm.launcher
 
 import android.content.Intent
 import android.os.Bundle
+import java.io.Closeable
 import android.view.KeyEvent
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import quest.devinthebm.launcher.data.AppInfo
@@ -22,6 +23,8 @@ class ShortcutConfigActivity : BaseListActivity() {
     private var appMap: Map<String, AppInfo> = emptyMap()
     private var shortcuts: List<String> = emptyList()
     private var pendingIndex = -1
+    private var catalogSubscription: Closeable? = null
+    private var catalogGeneration = -1
 
     private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && pendingIndex >= 0) {
@@ -50,6 +53,23 @@ class ShortcutConfigActivity : BaseListActivity() {
     override fun onResume() {
         super.onResume()
         reload()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        catalogGeneration = AppRepository.getSnapshot()?.generation ?: catalogGeneration
+        catalogSubscription = AppRepository.observeCatalog { snapshot ->
+            if (snapshot.generation > catalogGeneration && !isDestroyed) {
+                catalogGeneration = snapshot.generation
+                reload()
+            }
+        }
+    }
+
+    override fun onStop() {
+        catalogSubscription?.close()
+        catalogSubscription = null
+        super.onStop()
     }
 
     private fun reload() {

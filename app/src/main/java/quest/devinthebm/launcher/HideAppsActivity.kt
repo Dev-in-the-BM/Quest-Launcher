@@ -1,6 +1,7 @@
 package quest.devinthebm.launcher
 
 import android.os.Bundle
+import java.io.Closeable
 import quest.devinthebm.launcher.data.AppInfo
 import quest.devinthebm.launcher.data.AppRepository
 import quest.devinthebm.launcher.data.LauncherPrefs
@@ -16,6 +17,8 @@ class HideAppsActivity : BaseListActivity() {
     private lateinit var prefs: LauncherPrefs
     private lateinit var adapter: ListRowAdapter
     private var apps: List<AppInfo> = emptyList()
+    private var catalogSubscription: Closeable? = null
+    private var catalogGeneration = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,11 +44,41 @@ class HideAppsActivity : BaseListActivity() {
             if (isDestroyed) return@Thread
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
-                apps = loaded
-                adapter.submit(loaded.map { rowFor(it) })
-                focusFirst()
+                AppRepository.getSnapshot()?.let { catalogGeneration = maxOf(catalogGeneration, it.generation) }
+                displayApps(loaded)
             }
         }.start()
+    }
+
+    private fun displayApps(loaded: List<AppInfo>) {
+        apps = loaded
+        adapter.submit(loaded.map { rowFor(it) })
+        focusFirst()
+        AppRepository.requestIcons(this, loaded, AppRepository.VISIBLE_ICON_PRIORITY) { hydrated ->
+            runOnUiThread {
+                val index = apps.indexOfFirst { it.key == hydrated.key }
+                if (!isDestroyed && index >= 0) {
+                    apps = apps.toMutableList().also { it[index] = hydrated }
+                    adapter.updateRow(index, rowFor(hydrated))
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        catalogSubscription = AppRepository.observeCatalog { snapshot ->
+            if (snapshot.generation > catalogGeneration && !isDestroyed) {
+                catalogGeneration = snapshot.generation
+                displayApps(snapshot.apps)
+            }
+        }
+    }
+
+    override fun onStop() {
+        catalogSubscription?.close()
+        catalogSubscription = null
+        super.onStop()
     }
 
     private fun rowFor(app: AppInfo) = Row(

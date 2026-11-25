@@ -3,6 +3,7 @@ package quest.devinthebm.launcher
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import java.io.Closeable
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -41,6 +42,8 @@ class FavoritesActivity : ThemedActivity() {
     private var editing = false
     private var focusedSlot = 0
     private var slotBeingEdited = 0
+    private var catalogSubscription: Closeable? = null
+    private var catalogGeneration = -1
 
     private val picker = registerForActivityResult(StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -92,6 +95,23 @@ class FavoritesActivity : ThemedActivity() {
     override fun onResume() {
         super.onResume()
         if (prefs.getAccentColor() != appliedAccentColor) recreate()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        catalogGeneration = AppRepository.getSnapshot()?.generation ?: catalogGeneration
+        catalogSubscription = AppRepository.observeCatalog { snapshot ->
+            if (snapshot.generation > catalogGeneration && !isDestroyed) {
+                catalogGeneration = snapshot.generation
+                refresh(focusedSlot)
+            }
+        }
+    }
+
+    override fun onStop() {
+        catalogSubscription?.close()
+        catalogSubscription = null
+        super.onStop()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

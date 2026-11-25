@@ -12,6 +12,7 @@ import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.os.SystemClock
 import androidx.palette.graphics.Palette
 import kotlin.math.cos
 import kotlin.math.pow
@@ -52,13 +53,14 @@ object IconShapeRenderer {
         shape: LauncherPrefs.IconShape,
         wrapEnabled: Boolean,
         legacyBackgroundEnabled: Boolean,
+        onLegacyPaletteMeasured: ((Long) -> Unit)? = null,
     ): Drawable {
         if (!wrapEnabled || shape == LauncherPrefs.IconShape.NONE) return source
         val size = (CANVAS_DP * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
         val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && source is AdaptiveIconDrawable) {
             renderAdaptive(source, size, shape)
         } else {
-            renderLegacy(source, size, shape, legacyBackgroundEnabled)
+            renderLegacy(source, size, shape, legacyBackgroundEnabled, onLegacyPaletteMeasured)
         }
         return BitmapDrawable(context.resources, bitmap)
     }
@@ -78,11 +80,12 @@ object IconShapeRenderer {
         size: Int,
         shape: LauncherPrefs.IconShape,
         backgroundEnabled: Boolean,
+        onLegacyPaletteMeasured: ((Long) -> Unit)?,
     ): Bitmap {
         val content = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(content)
         if (backgroundEnabled) {
-            canvas.drawColor(lightenedDominantColor(drawable))
+            canvas.drawColor(lightenedDominantColor(drawable, onLegacyPaletteMeasured))
         }
         val iconSize = (size * LEGACY_ICON_SCALE).toInt()
         val offset = (size - iconSize) / 2
@@ -103,13 +106,20 @@ object IconShapeRenderer {
         return output
     }
 
-    private fun lightenedDominantColor(drawable: Drawable): Int {
+    private fun lightenedDominantColor(
+        drawable: Drawable,
+        onPaletteMeasured: ((Long) -> Unit)?,
+    ): Int {
         val sampleSize = 48
         val sample = Bitmap.createBitmap(sampleSize, sampleSize, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(sample)
         drawable.setBounds(0, 0, sampleSize, sampleSize)
         drawable.draw(canvas)
+        val paletteStartedAt = if (onPaletteMeasured != null) SystemClock.elapsedRealtimeNanos() else 0L
         val dominant = Palette.from(sample).generate().getDominantColor(Color.LTGRAY)
+        if (onPaletteMeasured != null) {
+            onPaletteMeasured(SystemClock.elapsedRealtimeNanos() - paletteStartedAt)
+        }
         return lighten(dominant, LEGACY_TINT_LIGHTEN)
     }
 

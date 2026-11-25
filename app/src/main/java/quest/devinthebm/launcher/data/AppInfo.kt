@@ -15,6 +15,8 @@ data class AppInfo(
     val packageName: String,
     val activityName: String,
     val icon: Drawable,
+    /** False while a drawer catalog entry is waiting for background icon hydration. */
+    val iconResolved: Boolean = true,
 ) {
     val componentName: ComponentName
         get() = ComponentName(packageName, activityName)

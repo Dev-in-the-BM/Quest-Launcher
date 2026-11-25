@@ -5,16 +5,30 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.theonionsarewatching.yapchik.SoftkeyMode
 import com.theonionsarewatching.yapchik.Yapchik
 import quest.devinthebm.launcher.data.AppRepository
 
 class QuestLauncherApplication : Application() {
+    private val packageRefreshHandler = Handler(Looper.getMainLooper())
+    private val pendingChangedPackages = LinkedHashSet<String>()
+    private val reconcilePackages = Runnable {
+        val packages = pendingChangedPackages.toSet()
+        pendingChangedPackages.clear()
+        AppRepository.reconcilePackages(this, packages)
+    }
     private val packageChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            AppRepository.invalidateCache()
-            AppRepository.preload(this@QuestLauncherApplication)
+            // PACKAGE_REMOVED + ADDED can be a single app update. Debouncing
+            // treats the burst as one reconciliation and avoids publishing the
+            // transient "removed" state for a replacing package.
+            val packageName = intent?.data?.schemeSpecificPart
+            if (packageName != null) pendingChangedPackages += packageName
+            packageRefreshHandler.removeCallbacks(reconcilePackages)
+            packageRefreshHandler.postDelayed(reconcilePackages, PACKAGE_EVENT_DEBOUNCE_MS)
         }
     }
 
@@ -34,7 +48,8 @@ class QuestLauncherApplication : Application() {
             textSizeSp = 15f
             horizontalPaddingDp = 18
         }
-        // Resolve labels/icons while Home is shown, not after the drawer opens.
+        // Warm the lightweight app catalog while Home is visible so the drawer
+        // can bind from memory on entry.
         AppRepository.preload(this)
         ContextCompat.registerReceiver(
             this,
@@ -43,9 +58,14 @@ class QuestLauncherApplication : Application() {
                 addAction(Intent.ACTION_PACKAGE_ADDED)
                 addAction(Intent.ACTION_PACKAGE_REMOVED)
                 addAction(Intent.ACTION_PACKAGE_CHANGED)
+                addAction(Intent.ACTION_PACKAGE_REPLACED)
                 addDataScheme("package")
             },
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+    }
+
+    private companion object {
+        const val PACKAGE_EVENT_DEBOUNCE_MS = 400L
     }
 }

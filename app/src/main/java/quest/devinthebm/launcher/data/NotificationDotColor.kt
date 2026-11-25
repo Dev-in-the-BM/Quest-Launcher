@@ -19,6 +19,7 @@ object NotificationDotColor {
     private const val SAMPLE_SIZE = 48
     private val cache = HashMap<String, Int>()
 
+    @Synchronized
     fun forIcon(appKey: String, icon: Drawable): Int = cache.getOrPut(appKey) {
         val sample = Bitmap.createBitmap(SAMPLE_SIZE, SAMPLE_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(sample)

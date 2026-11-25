@@ -55,7 +55,7 @@ class SettingsCategoryActivity : BaseListActivity() {
         if (result.resultCode == RESULT_OK) {
             result.data?.getStringExtra(AppPickerActivity.EXTRA_APP_KEY)?.let { key ->
                 prefs.setBackLongPressApp(key)
-                val label = AppRepository.resolveComponent(this, key)?.label
+                val label = AppRepository.resolveLabel(this, key)
                 if (label != null) Toast.makeText(this, getString(R.string.back_longpress_app_set, label), Toast.LENGTH_SHORT).show()
                 refreshRows()
             }
@@ -85,7 +85,7 @@ class SettingsCategoryActivity : BaseListActivity() {
             Setting(getString(R.string.settings_icon_shape), CATEGORY_APPEARANCE) { chooseIconShape() },
             Setting(getString(R.string.settings_icon_background), CATEGORY_APPEARANCE) {
                 prefs.setLegacyIconBackgroundEnabled(!prefs.isLegacyIconBackgroundEnabled())
-                AppRepository.invalidateCache()
+                AppRepository.invalidateIcons(this)
                 refreshRows()
             },
             Setting(getString(R.string.settings_notif_access), CATEGORY_NOTIFICATIONS) { openNotificationAccessSettings() },
@@ -178,11 +178,11 @@ class SettingsCategoryActivity : BaseListActivity() {
                 themeRow -> getString(LauncherThemeCatalog.resolve(LauncherThemeStore(prefs).read()).displayNameRes)
                 iconShapeRow -> getString(prefs.getIconShape().labelRes)
                 iconBackgroundRow -> onOff(prefs.isLegacyIconBackgroundEnabled())
-                backLongPressRow -> prefs.getBackLongPressApp()?.let { AppRepository.resolveComponent(this, it)?.label }
+                backLongPressRow -> prefs.getBackLongPressApp()?.let { AppRepository.resolveLabel(this, it) }
                     ?: getString(R.string.back_longpress_not_set)
                 in homeKeyRows.keys -> homeKeyRows[index]?.let { key ->
                     val action = prefs.getHomeKeyAction(key)
-                    if (action == LauncherPrefs.HomeKeyAction.APP) prefs.getHomeKeyApp(key)?.let { AppRepository.resolveComponent(this, it)?.label }
+                    if (action == LauncherPrefs.HomeKeyAction.APP) prefs.getHomeKeyApp(key)?.let { AppRepository.resolveLabel(this, it) }
                         ?: getString(action.labelRes)
                     else getString(action.labelRes)
                 }
@@ -306,7 +306,7 @@ class SettingsCategoryActivity : BaseListActivity() {
             .setSingleChoiceItems(labels, checked) { dialog, which ->
                 val shape = options[which]
                 prefs.setIconShape(shape)
-                AppRepository.invalidateCache()
+                AppRepository.invalidateIcons(this)
                 Toast.makeText(this, getString(R.string.settings_icon_shape_set, labels[which]), Toast.LENGTH_SHORT).show()
                 refreshRows()
                 dialog.dismiss()

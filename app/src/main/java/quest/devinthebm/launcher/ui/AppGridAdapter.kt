@@ -41,6 +41,13 @@ class AppGridAdapter(
         notifyDataSetChanged()
     }
 
+    fun updateAppAt(position: Int, app: AppInfo) {
+        if (position in items.indices && items[position].key == app.key) {
+            items[position] = app
+            notifyItemChanged(position)
+        }
+    }
+
     /** Tells the icon-size clamp the grid's current content area and shape,
      * so a large icon-size preference can't overflow a column's width or push
      * the last of [rows] rows past the bottom of the grid on a small screen. */
@@ -106,7 +113,9 @@ class AppGridAdapter(
             icon.contentDescription = app.label
             if (hasNotification(app)) {
                 notifDot.visibility = View.VISIBLE
-                notifDot.backgroundTintList = ColorStateList.valueOf(NotificationDotColor.forIcon(app.key, app.icon))
+                notifDot.backgroundTintList = ColorStateList.valueOf(
+                    if (app.iconResolved) NotificationDotColor.forIcon(app.key, app.icon) else android.graphics.Color.RED,
+                )
             } else {
                 notifDot.visibility = View.GONE
             }

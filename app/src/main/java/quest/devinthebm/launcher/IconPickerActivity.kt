@@ -111,7 +111,7 @@ class IconPickerActivity : ThemedActivity() {
     private fun applyIcon(name: String) {
         val pack = currentPack ?: return
         prefs.setIconOverride(appKey, pack, name)
-        AppRepository.invalidateCache()
+        AppRepository.invalidateIcons(this)
         Toast.makeText(this, R.string.icon_picker_applied, Toast.LENGTH_SHORT).show()
         finish()
     }
